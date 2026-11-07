@@ -4,12 +4,19 @@
   "private": true,
   "type": "module",
   "description": "A small, accessible TodoMVC built with vanilla JavaScript.",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node scripts/serve.js",
     "dev": "node scripts/serve.js",
     "test": "node --test tests/*.test.js",
     "test:browser": "node scripts/browser-test.js",
-    "check": "node --check js/app.js && node --check js/controller.js && node --check js/model.js && node --check js/storage.js && node --check js/view.js && node --check scripts/serve.js && node --check scripts/browser-test.js && node --check tests/browser-checks.js"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "check": "node --check js/app.js && node --check js/controller.js && node --check js/model.js && node --check js/storage.js && node --check js/view.js && node --check scripts/serve.js && node --check scripts/browser-test.js && node --check tests/browser-checks.js && node --check playwright.config.js && node --check tests/e2e/fixtures.js && node --check tests/e2e/todos.spec.js && node --check tests/e2e/layout.spec.js && node --check tests/e2e/storage.spec.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
   }
 }
