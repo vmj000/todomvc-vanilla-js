@@ -66,12 +66,15 @@ try {
         const win = frame.contentWindow;
         const doc = frame.contentDocument;
         if (win.innerWidth !== width || doc.querySelectorAll('.todo').length !== 2 || doc.documentElement.scrollWidth > width) throw new Error(width + 'px layout failed');
-        const expectedPanelWidth = width === 320 ? 292 : 550;
-        if (doc.querySelector('.todoapp').getBoundingClientRect().width !== expectedPanelWidth) throw new Error('Responsive panel width is wrong');
+        const panel = doc.querySelector('.todoapp').getBoundingClientRect();
+        if (panel.width <= 0 || panel.left < 0 || panel.right > width) throw new Error('Responsive panel leaves the viewport');
+        const scroll = doc.querySelector('.table-scroll');
+        if (!scroll || scroll.getBoundingClientRect().right > width || win.getComputedStyle(scroll).overflowX !== 'auto') throw new Error('Table scrolling is not contained');
+        if (width === 320 && scroll.scrollWidth <= scroll.clientWidth) throw new Error('Narrow table should scroll inside its region');
         if (width === 320 && win.getComputedStyle(doc.querySelector('.row-actions')).opacity !== '1') throw new Error('Mobile actions are not visible');
       } finally { clearTimeout(timer); frame.remove(); }
     }
-    return 'PASS: 1280px and 320px real iframe viewports, correct panel widths, long titles without overflow, visible mobile actions';
+    return 'PASS: 1280px and 320px real iframe viewports, bounded panel, contained table scrolling, long titles without page overflow, visible mobile actions';
   })()`);
   browser(['eval', '--stdin'], "localStorage.setItem('vanilla-todomvc:v1', '{broken')");
   browser(['open', url]);

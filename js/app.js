@@ -14,11 +14,15 @@ const controller = createController({
   render: view.render,
 });
 const newTodo = document.querySelector('#new-todo');
+const newLocation = document.querySelector('#new-location');
 const list = document.querySelector('#todo-list');
 
 document.querySelector('#new-todo-form').addEventListener('submit', event => {
   event.preventDefault();
-  if (controller.add(newTodo.value)) newTodo.value = '';
+  if (controller.add(newTodo.value, newLocation.value)) {
+    newTodo.value = '';
+    newLocation.value = '';
+  }
   newTodo.focus();
 });
 
@@ -35,19 +39,28 @@ list.addEventListener('change', event => {
     controller.dispatch({ type: 'toggle', id: event.target.closest('.todo').dataset.id });
   }
 });
+list.addEventListener('pointerdown', event => {
+  const action = event.target.closest('button[data-action]')?.dataset.action;
+  // Keep editor focus until Save/Cancel runs, including browsers that do not focus clicked buttons.
+  if (action === 'save' || action === 'cancel') event.preventDefault();
+});
 list.addEventListener('click', event => {
   const button = event.target.closest('button[data-action]');
   if (!button) return;
   const id = button.closest('.todo').dataset.id;
   if (button.dataset.action === 'delete') controller.dispatch({ type: 'delete', id });
   if (button.dataset.action === 'edit') controller.startEdit(id);
+  if (button.dataset.action === 'save') controller.finishEdit(id);
+  if (button.dataset.action === 'cancel') controller.finishEdit(id, true);
 });
 list.addEventListener('dblclick', event => {
   if (event.target.classList.contains('todo-title')) controller.startEdit(event.target.closest('.todo').dataset.id);
 });
 list.addEventListener('input', event => {
   if (event.target.dataset.action === 'editor') {
-    controller.setDraft(event.target.closest('.todo').dataset.id, event.target.value);
+    const id = event.target.closest('.todo').dataset.id;
+    if (event.target.dataset.field === 'location') controller.setLocationDraft(id, event.target.value);
+    else controller.setDraft(id, event.target.value);
   }
 });
 list.addEventListener('keydown', event => {
@@ -59,9 +72,9 @@ list.addEventListener('keydown', event => {
   }
 });
 list.addEventListener('focusout', event => {
-  if (event.target.dataset.action === 'editor') {
-    controller.finishEdit(event.target.closest('.todo').dataset.id);
-  }
+  const row = event.target.closest('.todo');
+  if (!row?.classList.contains('editing')) return;
+  controller.finishEditOnFocusOut(row.dataset.id, event.target.dataset.action, row.contains(event.relatedTarget));
 });
 
 controller.render();

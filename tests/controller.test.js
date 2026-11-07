@@ -10,9 +10,9 @@ function setup(options = {}) {
   let id = 0;
   const controller = createController({
     initialTodos: [
-      { id: 'a', title: 'Read', completed: false },
-      { id: 'b', title: 'Walk', completed: true },
-      { id: 'c', title: 'Write', completed: false },
+      { id: 'a', title: 'Read', location: '', completed: false },
+      { id: 'b', title: 'Walk', location: '', completed: true },
+      { id: 'c', title: 'Write', location: '', completed: false },
     ],
     createId: () => `new-${++id}`,
     save: todos => { saves.push(todos); return ''; },
@@ -28,7 +28,7 @@ test('adding blank text is a no-op and valid additions save once', () => {
   assert.equal(saves.length, 0);
   assert.equal(renders.length, 0);
   assert.equal(controller.add('  Tea  '), true);
-  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', completed: false });
+  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', location: '', completed: false });
   assert.equal(saves.length, 1);
 });
 
@@ -78,7 +78,7 @@ test('starting another edit commits the previous draft and selects the new origi
   controller.setDraft('a', 'New title');
   controller.startEdit('b');
   assert.equal(controller.snapshot().todos[0].title, 'New title');
-  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: 'Walk' });
+  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: 'Walk', locationDraft: '' });
   controller.startEdit('b');
   controller.setDraft('missing', 'ignored');
   assert.equal(controller.snapshot().editing.draft, 'Walk');
@@ -153,4 +153,98 @@ test('initial load warnings are rendered and no-op operations do not hide them',
   controller.dispatch({ type: 'delete', id: 'missing' });
   assert.equal(renders.at(-1).storageError, STORAGE_UNAVAILABLE);
   assert.equal(saves.length, 0);
+});
+
+test('optional creation locations are trimmed and a location alone cannot create a todo', () => {
+  const { controller, saves } = setup();
+  assert.equal(controller.add(' ', 'Office'), false);
+  assert.equal(saves.length, 0);
+  controller.add(' Tea ', ' Kitchen ');
+  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', location: 'Kitchen', completed: false });
+});
+
+test('title and location drafts are independent and commit atomically only once', () => {
+  const { controller, saves } = setup();
+  controller.startEdit('b');
+  controller.setDraft('b', ' Longer walk ');
+  controller.setLocationDraft('b', ' Park ');
+  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: ' Longer walk ', locationDraft: ' Park ' });
+  assert.equal(saves.length, 0);
+  controller.finishEdit('b');
+  controller.finishEdit('b');
+  assert.deepEqual(controller.snapshot().todos[1], { id: 'b', title: 'Longer walk', location: 'Park', completed: true });
+  assert.equal(saves.length, 1);
+});
+
+test('cancel restores both original fields and stale blur/draft updates cannot change them', () => {
+  const { controller, saves } = setup({ initialTodos: [{ id: 'a', title: 'Read', location: 'Home', completed: false }] });
+  controller.startEdit('a');
+  controller.setDraft('a', '');
+  controller.setLocationDraft('a', 'Library');
+  controller.finishEdit('a', true);
+  controller.finishEdit('a');
+  controller.setLocationDraft('a', 'Stale');
+  assert.deepEqual(controller.snapshot().todos[0], { id: 'a', title: 'Read', location: 'Home', completed: false });
+  assert.equal(saves.length, 0);
+});
+
+test('clearing a location does not delete the task and filter changes save location drafts', () => {
+  const { controller } = setup({ initialTodos: [{ id: 'a', title: 'Read', location: 'Home', completed: false }] });
+  controller.startEdit('a');
+  controller.setLocationDraft('a', ' ');
+  controller.finishEdit('a');
+  assert.equal(controller.snapshot().todos.length, 1);
+  assert.equal(controller.snapshot().todos[0].location, '');
+  controller.startEdit('a');
+  controller.setLocationDraft('a', 'Library');
+  controller.setFilter('completed');
+  assert.equal(controller.snapshot().todos[0].location, 'Library');
+  assert.equal(controller.snapshot().editing, null);
+});
+
+test('legacy todos without locations start with an empty location draft', () => {
+  const { controller } = setup({ initialTodos: [{ id: 'old', title: 'Existing task', completed: true }] });
+  controller.startEdit('old');
+  assert.equal(controller.snapshot().editing.locationDraft, '');
+  controller.setLocationDraft('old', 'Home');
+  controller.finishEdit('old');
+  assert.deepEqual(controller.snapshot().todos[0], { id: 'old', title: 'Existing task', location: 'Home', completed: true });
+});
+
+test('hiding a focused Edit button during startEdit cannot reentrantly end editing', () => {
+  let controller;
+  let renders = 0;
+  ({ controller } = setup({
+    render: state => {
+      renders++;
+      if (state.editing) controller.finishEditOnFocusOut(state.editing.id, 'edit', false);
+    },
+  }));
+  controller.startEdit('a');
+  assert.equal(renders, 1);
+  assert.equal(controller.snapshot().editing.id, 'a');
+  controller.setDraft('a', 'Changed task');
+  controller.setLocationDraft('a', 'Library');
+  controller.finishEdit('a');
+  assert.deepEqual(controller.snapshot().todos[0], { id: 'a', title: 'Changed task', location: 'Library', completed: false });
+});
+
+test('focus transitions within the edited row keep both drafts; leaving a real edit control commits', () => {
+  const { controller, saves } = setup();
+  controller.startEdit('a');
+  controller.setDraft('a', 'Read more');
+  controller.setLocationDraft('a', 'Library');
+  for (const action of ['editor', 'save', 'cancel']) {
+    controller.finishEditOnFocusOut('a', action, true);
+    assert.equal(controller.snapshot().editing.id, 'a');
+  }
+  for (const action of ['edit', 'delete', 'toggle', undefined]) {
+    controller.finishEditOnFocusOut('a', action, false);
+    assert.equal(controller.snapshot().editing.id, 'a');
+  }
+  assert.equal(saves.length, 0);
+  controller.finishEditOnFocusOut('a', 'editor', false);
+  assert.equal(controller.snapshot().editing, null);
+  assert.equal(controller.snapshot().todos[0].location, 'Library');
+  assert.equal(saves.length, 1);
 });

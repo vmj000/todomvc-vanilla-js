@@ -1,8 +1,9 @@
 # Vanilla TodoMVC
 
-A classic TodoMVC in plain HTML, CSS, and JavaScript. No framework, build step, backend, or runtime dependencies. Playwright is a development-only dependency.
+A tabular TodoMVC in plain HTML, CSS, and JavaScript, with optional task locations. No framework, build step, backend, or runtime dependencies. Playwright is a development-only dependency.
 
 Live app: **https://vmj000.github.io/todomvc-vanilla-js/**. See [deployment instructions](docs/deployment.md) for GitHub Pages setup and verification.
+The live app tracks `main`; feature-branch changes are not deployed before merge.
 
 ## Run
 
@@ -17,14 +18,18 @@ Open **http://127.0.0.1:3000**. Stop with Ctrl+C. To use another port, run `PORT
 
 ## Use
 
-- Type a todo and press Enter. Whitespace-only titles are ignored.
+- Use the table's Completion, Task, Location, and Actions columns to manage todos.
+- Type a task, optionally add a free-text location, and press Enter or select Add todo. Both fields are trimmed; whitespace-only tasks are ignored. Location needs no map, account, or geolocation permission.
 - Check an item to complete it. The top chevron toggles **all** items, including those outside the current filter.
-- Double-click a title or activate its edit button to edit. Enter or leaving the field saves; Escape cancels. Saving an empty title deletes the item.
+- Double-click a task or activate its edit button to edit task and location together. Enter or Save commits both fields; Escape or Cancel restores both. Moving between that row's fields and buttons keeps editing; leaving the row saves. An empty task deletes the item, while an empty location only clears its location.
 - Use the delete button to remove an item or Clear completed to remove every completed item.
 - All, Active, and Completed use hash URLs and support Back/Forward.
 - All controls work with the keyboard. Row actions appear on hover, keyboard focus, and touch-sized screens.
+- On narrow screens, the table scrolls horizontally inside its labeled, keyboard-focusable region without making the page overflow. Long tasks and locations wrap inside their cells.
 
 Todos stay in this browser, on this origin, under `vanilla-todomvc:v1` in `localStorage`. They are never sent to a service. Private browsing, clearing site data, changing the port/origin, or using another device may give you a separate or empty list. If browser storage fails, the app keeps working in memory and displays a warning. Malformed saved data is ignored; the next change writes a fresh valid list. There is no cross-tab conflict resolution.
+
+The optional `location` field is additive within the existing version1 payload and storage key. Legacy todos without it load with an empty location, preserving IDs, order, tasks, and completion without rewriting storage on load. A supplied location must be a string; loaded text is trimmed and rendered literally, never as HTML.
 
 ## Validate
 
@@ -70,11 +75,11 @@ For a browser smoke test, start the server and:
 
 1. Add three items, complete one, and verify the count and all three filters.
 2. Under Active, toggle all. Verify the empty filtered state, then use Completed to inspect all items.
-3. Edit using the mouse and keyboard. Check Enter, blur, Escape, and empty-title deletion, including clicking another row action while editing.
+3. Create and edit locations, including leaving one blank. Move between task and location editors, then check Enter, Save, Cancel, Escape, leaving the row, and empty-task deletion.
 4. Reload and navigate Back/Forward. Verify titles, order, completion, and selected filter.
-5. Enter `<img src=x onerror=alert(1)>`. Verify it appears as literal text, not an image.
+5. Enter `<img src=x onerror=alert(1)>` as both task and location. Verify it appears as literal text, not an image.
 6. Use only Tab, Shift+Tab, Enter, Space, and Escape. Check focus after deletion and editing.
-7. Check desktop and 320px-wide layouts, including long titles, for wrapping and no horizontal overflow.
+7. Check desktop and 320px-wide layouts, including long tasks/locations, for cell wrapping and contained table scrolling without page overflow.
 
 ## Structure
 

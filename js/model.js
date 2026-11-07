@@ -19,7 +19,7 @@ export function updateTodos(todos, action) {
     case 'add': {
       const title = action.title.trim();
       if (!title || todos.some(todo => todo.id === action.id)) return todos;
-      return [...todos, { id: action.id, title, completed: false }];
+      return [...todos, { id: action.id, title, location: (action.location ?? '').trim(), completed: false }];
     }
     case 'toggle':
       return todos.some(todo => todo.id === action.id)
@@ -33,8 +33,10 @@ export function updateTodos(todos, action) {
     case 'edit': {
       const title = action.title.trim();
       if (!title) return updateTodos(todos, { type: 'delete', id: action.id });
-      return todos.some(todo => todo.id === action.id && todo.title !== title)
-        ? todos.map(todo => todo.id === action.id ? { ...todo, title } : todo)
+      const location = action.location === undefined ? undefined : action.location.trim();
+      return todos.some(todo => todo.id === action.id
+        && (todo.title !== title || (location !== undefined && (todo.location ?? '') !== location)))
+        ? todos.map(todo => todo.id === action.id ? { ...todo, title, ...(location === undefined ? {} : { location }) } : todo)
         : todos;
     }
     case 'delete':

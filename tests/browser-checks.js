@@ -2,6 +2,7 @@
   const checks = [];
   const q = selector => document.querySelector(selector);
   const titles = () => [...document.querySelectorAll('.todo-title')].map(node => node.textContent);
+  const locations = () => [...document.querySelectorAll('.todo-location')].map(node => node.textContent);
   const assert = (condition, name) => {
     if (!condition) throw new Error(`Browser check failed: ${name}`);
     checks.push(name);
@@ -10,8 +11,9 @@
     node.value = value;
     node.dispatchEvent(new Event('input', { bubbles: true }));
   };
-  const add = title => {
+  const add = (title, location = '') => {
     input(q('#new-todo'), title);
+    input(q('#new-location'), location);
     q('#new-todo-form').requestSubmit();
   };
   const route = async hash => {
@@ -21,18 +23,24 @@
     await changed;
   };
   const key = value => q('.editing .edit-input').dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true }));
-  const edit = (index, value) => {
+  const edit = (index, value, location) => {
     document.querySelectorAll('.edit-button')[index].click();
     input(q('.editing .edit-input'), value);
+    if (location !== undefined) input(q('.editing .edit-location'), location);
   };
 
   assert(q('#main').hidden && q('#footer').hidden, 'initial empty state hides main and footer');
   add('   ');
   assert(titles().length === 0, 'blank additions are ignored');
-  add('  Read a book  ');
-  add('Take a walk');
+  add('  Read a book  ', '  Home  ');
+  add('Take a walk', 'Park');
   add('Make some tea');
   assert(JSON.stringify(titles()) === JSON.stringify(['Read a book', 'Take a walk', 'Make some tea']), 'trimmed additions preserve order');
+  const table = q('table[aria-label="Todo list"]');
+  assert(table && JSON.stringify([...table.querySelectorAll('thead th')].map(node => node.textContent)) === JSON.stringify(['Completion', 'Task', 'Location', 'Actions']), 'semantic table exposes completion, task, location, and actions columns');
+  assert(q('#todo-list').tagName === 'TBODY' && q('.todo').tagName === 'TR' && q('.todo').querySelectorAll('td').length === 4, 'todos render as four-cell table rows');
+  assert(JSON.stringify(locations()) === JSON.stringify(['Home', 'Park', '—']), 'optional locations trim and show an accessible empty placeholder');
+  assert(document.querySelectorAll('.todo-location')[2].getAttribute('aria-label') === 'No location' && q('#new-location').value === '', 'blank location is labeled and creation clears the location input');
   assert(q('#todo-count').textContent === '3 items left' && q('#new-todo') === document.activeElement, 'addition keeps input focus and updates count');
   q('.toggle').click();
   assert(q('#todo-count').textContent === '2 items left' && q('#toggle-all').indeterminate, 'completion updates count and mixed bulk state');
@@ -43,6 +51,7 @@
   assert(q('#todo-count').textContent === '0 items left', 'count is global under an empty filter');
   await route('#/completed');
   assert(titles().length === 3, 'completed filter includes the entire completed collection');
+  assert(JSON.stringify(locations()) === JSON.stringify(['Home', 'Park', '—']), 'bulk completion and filters preserve locations');
   q('#toggle-all').click();
   assert(titles().length === 0 && q('#todo-count').textContent === '3 items left', 'second bulk toggle activates all items across the filter');
   await route('#/active');
@@ -51,19 +60,26 @@
   assert(JSON.stringify(titles()) === JSON.stringify(['Take a walk', 'Make some tea']), 'clear completed removes items hidden by the active filter');
   assert(q('#clear-completed').hidden, 'clear completed hides when there is nothing to clear');
   await route('#/');
-  edit(0, '  Walk by the river  ');
+  edit(0, '  Walk by the river  ', '  Riverbank  ');
+  q('.editing .edit-location').focus();
+  assert(q('.editing .edit-input').value === '  Walk by the river  ' && q('.editing .toggle').disabled, 'moving between edit fields retains both drafts and disables the row toggle');
+  q('.editing button[aria-label^="Save "]').focus();
+  assert(q('.editing .edit-location').value === '  Riverbank  ', 'moving to an edit action does not commit prematurely');
   key('Enter');
   assert(document.activeElement === q('.edit-button'), 'Enter restores focus to the row edit button');
   q('#new-todo').focus();
   assert(titles()[0] === 'Walk by the river' && titles().length === 2, 'Enter and subsequent blur commit once');
-  edit(0, '');
+  assert(locations()[0] === 'Riverbank', 'Enter commits a trimmed location with the title');
+  edit(0, '', 'Discard this location');
   key('Escape');
   assert(document.activeElement === q('.edit-button'), 'Escape restores focus to the row edit button');
   q('#new-todo').focus();
   assert(titles()[0] === 'Walk by the river' && titles().length === 2, 'Escape and subsequent blur cancel a blank draft without deletion');
-  edit(0, 'Walk outside');
+  assert(locations()[0] === 'Riverbank', 'Escape cancels the location draft together with the title');
+  edit(0, 'Walk outside', '  Outdoors  ');
   q('#new-todo').focus();
   assert(titles()[0] === 'Walk outside', 'blur commits an edited title');
+  assert(locations()[0] === 'Outdoors', 'leaving the row commits a trimmed location');
   edit(1, '   ');
   key('Enter');
   assert(titles().length === 1 && titles()[0] === 'Walk outside', 'empty committed edits delete only the edited item');
@@ -77,9 +93,11 @@
   deleteButton.click();
   assert(q('#main').hidden && q('#footer').hidden && document.activeElement === q('#new-todo'), 'deleting the final item restores empty state and input focus');
   const literal = '<img src=x onerror=window.__todoXss=true>';
-  add(literal);
-  assert(titles()[0] === literal && !q('.todo-list img') && !window.__todoXss, 'HTML-like titles are rendered as text and never execute');
-  add('A very long todo: ' + 'a'.repeat(220));
+  const literalLocation = '<svg onload=window.__locationXss=true>';
+  add(literal, literalLocation);
+  assert(titles()[0] === literal && !q('#todo-list img') && !window.__todoXss, 'HTML-like titles are rendered as text and never execute');
+  assert(locations()[0] === literalLocation && !q('.todo-location svg') && !window.__locationXss, 'HTML-like locations are rendered as text and never execute');
+  add('A very long todo: ' + 'a'.repeat(220), 'A very long location: ' + 'b'.repeat(220));
   q('.toggle').click();
   await route('#/unknown');
   assert(titles().length === 2 && q('[data-filter="all"]').getAttribute('aria-current') === 'page', 'unknown routes safely fall back to All');
@@ -96,5 +114,6 @@
   await route('#/');
   const saved = JSON.parse(localStorage.getItem('vanilla-todomvc:v1'));
   assert(saved.version === 1 && saved.todos.length === 2 && saved.todos[0].completed, 'persistent payload preserves order and completion');
+  assert(saved.todos[0].location === literalLocation && saved.todos[1].location.includes('b'.repeat(220)), 'persistent payload includes literal and long locations');
   return { passed: checks.length, checks, saved };
 })()

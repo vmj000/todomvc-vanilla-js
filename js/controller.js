@@ -22,9 +22,9 @@ export function createController({
   const controller = {
     snapshot,
     render: emit,
-    add(title) {
+    add(title, location = '') {
       if (!title.trim()) return false;
-      mutate({ type: 'add', id: createId(), title });
+      mutate({ type: 'add', id: createId(), title, location });
       emit();
       return true;
     },
@@ -43,17 +43,24 @@ export function createController({
       if (editing) controller.finishEdit(editing.id);
       const todo = todos.find(todo => todo.id === id);
       if (!todo) return;
-      editing = { id, draft: todo.title };
+      editing = { id, draft: todo.title, locationDraft: todo.location ?? '' };
       emit();
     },
     setDraft(id, draft) {
-      if (editing?.id === id) editing = { id, draft };
+      if (editing?.id === id) editing = { ...editing, draft };
+    },
+    setLocationDraft(id, locationDraft) {
+      if (editing?.id === id) editing = { ...editing, locationDraft };
+    },
+    finishEditOnFocusOut(id, sourceAction, staysInRow) {
+      if (staysInRow || !['editor', 'save', 'cancel'].includes(sourceAction)) return;
+      controller.finishEdit(id);
     },
     finishEdit(id, cancel = false) {
       if (editing?.id !== id) return;
-      const { draft } = editing;
+      const { draft, locationDraft } = editing;
       editing = null;
-      if (!cancel) mutate({ type: 'edit', id, title: draft });
+      if (!cancel) mutate({ type: 'edit', id, title: draft, location: locationDraft });
       emit();
     },
   };
