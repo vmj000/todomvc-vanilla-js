@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f5f5">
+    <meta name="description" content="A quiet place for your everyday to-dos. Built with vanilla JavaScript.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23b83f45'/%3E%3Cpath d='m17 33 10 10 21-23' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="./styles.css">
+    <title>todos · Vanilla JavaScript</title>
+    <script type="module" src="./js/app.js"></script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <p class="eyebrow">A LITTLE LESS ON YOUR MIND</p>
+        <h1>todos</h1>
+      </header>
+      <section class="todoapp" aria-label="Todo list">
+        <header class="entry">
+          <div class="toggle-all-wrap" id="toggle-all-wrap" hidden>
+            <input class="toggle-all" id="toggle-all" type="checkbox" aria-label="Mark all todos as complete">
+            <label class="toggle-all-label" for="toggle-all" title="Toggle all todos">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg>
+            </label>
+          </div>
+          <form id="new-todo-form" autocomplete="off">
+            <label class="sr-only" for="new-todo">What needs to be done?</label>
+            <input id="new-todo" class="new-todo" name="todo" placeholder="What needs to be done?" autofocus>
+          </form>
+        </header>
+        <section class="main" id="main" aria-label="Your todos" hidden>
+          <ul class="todo-list" id="todo-list"></ul>
+          <p class="filter-empty" id="filter-empty" hidden>No todos here. A little breathing room.</p>
+        </section>
+        <footer class="footer" id="footer" hidden>
+          <span class="todo-count" id="todo-count" role="status" aria-live="polite" aria-atomic="true"></span>
+          <nav class="filters" aria-label="Filter todos">
+            <a href="#/" data-filter="all">All</a>
+            <a href="#/active" data-filter="active">Active</a>
+            <a href="#/completed" data-filter="completed">Completed</a>
+          </nav>
+          <button class="clear-completed" id="clear-completed" type="button" hidden>Clear completed</button>
+        </footer>
+      </section>
+      <p class="storage-notice" id="storage-notice" role="status" hidden></p>
+      <footer class="info">
+        <p id="edit-help">Double-click a todo to edit, or use its edit button.</p>
+        <p>One thing at a time.</p>
+        <span class="built-with">VANILLA JAVASCRIPT · SAVED ON THIS DEVICE</span>
+      </footer>
+      <noscript><p class="storage-notice">Please enable JavaScript to use your todo list.</p></noscript>
+      <p class="sr-only" id="edit-instructions">Press Enter to save or Escape to cancel. Leaving this field also saves. An empty title deletes the todo.</p>
+    </main>
+    <template id="todo-template">
+      <li class="todo">
+        <div class="todo-view">
+          <input class="toggle" type="checkbox" data-action="toggle">
+          <span class="todo-title"></span>
+          <div class="row-actions">
+            <button class="edit-button" type="button" data-action="edit" title="Edit todo">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg>
+            </button>
+            <button class="destroy" type="button" data-action="delete" title="Delete todo">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+        </div>
+        <input class="edit-input" data-action="editor" aria-describedby="edit-instructions" hidden>
+      </li>
+    </template>
+  </body>
+</html>
