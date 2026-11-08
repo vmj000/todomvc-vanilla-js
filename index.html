@@ -27,10 +27,34 @@
           <form id="new-todo-form" autocomplete="off">
             <label class="sr-only" for="new-todo">What needs to be done?</label>
             <input id="new-todo" class="new-todo" name="todo" placeholder="What needs to be done?" autofocus>
+            <div class="new-location-field">
+              <label for="new-location">Location (optional)</label>
+              <input id="new-location" class="new-location" name="location" placeholder="e.g. Home or office">
+            </div>
+            <button class="add-todo" type="submit">Add todo</button>
           </form>
         </header>
         <section class="main" id="main" aria-label="Your todos" hidden>
-          <ul class="todo-list" id="todo-list"></ul>
+          <div class="table-scroll" role="region" aria-label="Todo table, scroll horizontally to see all columns" tabindex="0">
+            <table class="todo-table" aria-label="Todo list">
+              <caption class="sr-only">Your todos, with optional locations and editing controls.</caption>
+              <colgroup>
+                <col class="completion-column">
+                <col class="task-column">
+                <col class="location-column">
+                <col class="actions-column">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Completion</th>
+                  <th scope="col">Task</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="todo-list" id="todo-list"></tbody>
+            </table>
+          </div>
           <p class="filter-empty" id="filter-empty" hidden>No todos here. A little breathing room.</p>
         </section>
         <footer class="footer" id="footer" hidden>
@@ -45,18 +69,27 @@
       </section>
       <p class="storage-notice" id="storage-notice" role="status" hidden></p>
       <footer class="info">
-        <p id="edit-help">Double-click a todo to edit, or use its edit button.</p>
+        <p id="edit-help">Double-click a task or use Edit to change its task and location.</p>
         <p>One thing at a time.</p>
         <span class="built-with">VANILLA JAVASCRIPT · SAVED ON THIS DEVICE</span>
       </footer>
       <noscript><p class="storage-notice">Please enable JavaScript to use your todo list.</p></noscript>
-      <p class="sr-only" id="edit-instructions">Press Enter to save or Escape to cancel. Leaving this field also saves. An empty title deletes the todo.</p>
+      <p class="sr-only" id="edit-instructions">Press Enter to save both fields or Escape to cancel. Moving between this row's fields and buttons keeps editing. Leaving the row saves. An empty task deletes the todo; an empty location clears its location.</p>
     </main>
     <template id="todo-template">
-      <li class="todo">
-        <div class="todo-view">
+      <tr class="todo">
+        <td class="completion-cell">
           <input class="toggle" type="checkbox" data-action="toggle">
+        </td>
+        <td class="task-cell">
           <span class="todo-title"></span>
+          <input class="edit-input" data-action="editor" data-field="title" aria-describedby="edit-instructions" hidden>
+        </td>
+        <td class="location-cell">
+          <span class="todo-location"></span>
+          <input class="edit-location" data-action="editor" data-field="location" aria-describedby="edit-instructions" hidden>
+        </td>
+        <td class="actions-cell">
           <div class="row-actions">
             <button class="edit-button" type="button" data-action="edit" title="Edit todo">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L20 8a2.1 2.1 0 0 0-5-5L4 14z"/></svg>
@@ -64,10 +97,15 @@
             <button class="destroy" type="button" data-action="delete" title="Delete todo">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
             </button>
+            <button class="save-edit" type="button" data-action="save" title="Save changes" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>
+            </button>
+            <button class="cancel-edit" type="button" data-action="cancel" title="Cancel changes" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
           </div>
-        </div>
-        <input class="edit-input" data-action="editor" aria-describedby="edit-instructions" hidden>
-      </li>
+        </td>
+      </tr>
     </template>
   </body>
 </html>

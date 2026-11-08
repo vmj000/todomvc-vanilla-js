@@ -8,6 +8,7 @@ function validTodos(todos) {
   return todos.every(todo => {
     if (!todo || typeof todo.id !== 'string' || !todo.id.trim() || ids.has(todo.id)
       || typeof todo.title !== 'string' || !todo.title.trim()
+      || (todo.location !== undefined && typeof todo.location !== 'string')
       || typeof todo.completed !== 'boolean') return false;
     ids.add(todo.id);
     return true;
@@ -28,7 +29,7 @@ export function createStorage(getStorage = () => window.localStorage) {
         const data = JSON.parse(raw);
         if (data?.version !== 1 || !validTodos(data.todos)) throw new Error('Invalid saved todos');
         return {
-          todos: data.todos.map(({ id, title, completed }) => ({ id, title: title.trim(), completed })),
+          todos: data.todos.map(({ id, title, location = '', completed }) => ({ id, title: title.trim(), location: location.trim(), completed })),
           error: '',
         };
       } catch {
@@ -37,7 +38,8 @@ export function createStorage(getStorage = () => window.localStorage) {
     },
     save(todos) {
       try {
-        getStorage().setItem(STORAGE_KEY, JSON.stringify({ version: 1, todos }));
+        const normalized = todos.map(({ id, title, location = '', completed }) => ({ id, title, location, completed }));
+        getStorage().setItem(STORAGE_KEY, JSON.stringify({ version: 1, todos: normalized }));
         return '';
       } catch {
         return STORAGE_UNAVAILABLE;

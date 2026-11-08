@@ -1,4 +1,4 @@
-import { test, expect, addTodos, count, filter, newTodo, titles, todo } from './fixtures.js';
+import { test, expect, addTodos, count, filter, newLocation, newTodo, titles, todo } from './fixtures.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -166,14 +166,14 @@ test('HTML-like titles stay literal when created, edited, and restored', async (
   const edited = '<svg onload="window.__todoXss=true"> & "quoted"';
   await addTodos(page, literal);
   await expect(titles(page)).toHaveText([literal]);
-  await expect(page.getByRole('listitem').locator('img, .todo-title svg')).toHaveCount(0);
+  await expect(page.getByRole('table').locator('img, .todo-title svg')).toHaveCount(0);
   await page.getByRole('button', { name: `Edit “${literal}”`, exact: true }).click();
   const editor = page.getByRole('textbox', { name: `Edit todo: ${literal}`, exact: true });
   await editor.fill(edited);
   await editor.press('Enter');
   await page.reload();
   await expect(titles(page)).toHaveText([edited]);
-  await expect(page.getByRole('listitem').locator('img, .todo-title svg')).toHaveCount(0);
+  await expect(page.getByRole('table').locator('img, .todo-title svg')).toHaveCount(0);
   expect(await page.evaluate(() => window.__todoXss)).toBeUndefined();
 });
 
@@ -182,6 +182,12 @@ test('native keyboard navigation can complete, edit, and delete with predictable
     'macOS WebKit tab order depends on host Full Keyboard Access settings; covered on Linux CI.');
   await addTodos(page, 'First', 'Second');
   await newTodo(page).press('Tab');
+  await expect(newLocation(page)).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Add todo', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('region', { name: 'Todo table, scroll horizontally to see all columns', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(todo(page, 'First').getByRole('checkbox')).toBeFocused();
   await page.keyboard.press('Space');
   await expect(todo(page, 'First').getByRole('checkbox')).toBeChecked();

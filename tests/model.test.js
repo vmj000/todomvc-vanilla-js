@@ -3,15 +3,15 @@ import assert from 'node:assert/strict';
 import { filterFromHash, remainingCount, updateTodos, visibleTodos } from '../js/model.js';
 
 const fixture = () => [
-  { id: 'a', title: 'Read', completed: false },
-  { id: 'b', title: 'Walk', completed: true },
-  { id: 'c', title: 'Write', completed: false },
+  { id: 'a', title: 'Read', location: '', completed: false },
+  { id: 'b', title: 'Walk', location: '', completed: true },
+  { id: 'c', title: 'Write', location: '', completed: false },
 ];
 
 test('adding trims titles, appends active items, and leaves the input array untouched', () => {
   const todos = fixture();
   const result = updateTodos(todos, { type: 'add', id: 'd', title: '  Make tea \n' });
-  assert.deepEqual(result.at(-1), { id: 'd', title: 'Make tea', completed: false });
+  assert.deepEqual(result.at(-1), { id: 'd', title: 'Make tea', location: '', completed: false });
   assert.deepEqual(result.slice(0, 3), todos);
   assert.equal(todos.length, 3);
 });
@@ -42,7 +42,7 @@ test('toggle-all completes a mixed collection, then activates the whole collecti
 test('editing trims, preserves ID/completion/order, and skips unchanged or missing titles', () => {
   const todos = fixture();
   const result = updateTodos(todos, { type: 'edit', id: 'b', title: '  Long walk  ' });
-  assert.deepEqual(result[1], { id: 'b', title: 'Long walk', completed: true });
+  assert.deepEqual(result[1], { id: 'b', title: 'Long walk', location: '', completed: true });
   assert.equal(todos[1].title, 'Walk');
   assert.equal(updateTodos(todos, { type: 'edit', id: 'b', title: ' Walk ' }), todos);
   assert.equal(updateTodos(todos, { type: 'edit', id: 'missing', title: 'New' }), todos);
@@ -84,4 +84,44 @@ test('HTML-like todo titles stay literal data during additions and edits', () =>
   const todos = updateTodos([], { type: 'add', id: 'a', title });
   assert.equal(todos[0].title, title);
   assert.equal(updateTodos(todos, { type: 'edit', id: 'a', title: '<script>x</script>' })[0].title, '<script>x</script>');
+});
+
+test('adding trims optional locations without requiring one', () => {
+  const located = updateTodos([], { type: 'add', id: 'a', title: 'Buy milk', location: '  Corner shop \n' });
+  assert.equal(located[0].location, 'Corner shop');
+  assert.equal(updateTodos([], { type: 'add', id: 'b', title: 'Read', location: ' \t' })[0].location, '');
+});
+
+test('editing location alone preserves title, completion, identity, and order', () => {
+  const todos = fixture();
+  const result = updateTodos(todos, { type: 'edit', id: 'b', title: 'Walk', location: ' Park ' });
+  assert.deepEqual(result[1], { id: 'b', title: 'Walk', location: 'Park', completed: true });
+  assert.equal(todos[1].location, '');
+  assert.equal(result[0], todos[0]);
+  assert.equal(updateTodos(result, { type: 'edit', id: 'b', title: ' Walk ', location: ' Park ' }), result);
+});
+
+test('title-only edits preserve locations while an explicit blank clears only location', () => {
+  const todos = [{ id: 'a', title: 'Read', location: 'Library', completed: false }];
+  const renamed = updateTodos(todos, { type: 'edit', id: 'a', title: 'Read more' });
+  assert.equal(renamed[0].location, 'Library');
+  const cleared = updateTodos(renamed, { type: 'edit', id: 'a', title: 'Read more', location: '  ' });
+  assert.equal(cleared.length, 1);
+  assert.equal(cleared[0].location, '');
+  assert.deepEqual(updateTodos(cleared, { type: 'edit', id: 'a', title: '', location: 'Library' }), []);
+});
+
+test('completion, filtering, deletion, and bulk operations never discard surviving locations', () => {
+  const todos = fixture().map((todo, index) => ({ ...todo, location: ['Home', 'Park', 'Office'][index] }));
+  const toggled = updateTodos(todos, { type: 'toggle-all' });
+  assert.deepEqual(toggled.map(todo => todo.location), ['Home', 'Park', 'Office']);
+  assert.deepEqual(visibleTodos(updateTodos(toggled, { type: 'toggle', id: 'b' }), 'active').map(todo => todo.location), ['Park']);
+  assert.deepEqual(updateTodos(todos, { type: 'clear-completed' }).map(todo => todo.location), ['Home', 'Office']);
+});
+
+test('HTML-like location strings remain literal data', () => {
+  const location = '<img src=x onerror=alert(1)>';
+  const todos = updateTodos([], { type: 'add', id: 'a', title: 'Read', location });
+  assert.equal(todos[0].location, location);
+  assert.equal(updateTodos(todos, { type: 'edit', id: 'a', title: 'Read', location: '<script>x</script>' })[0].location, '<script>x</script>');
 });

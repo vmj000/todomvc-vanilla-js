@@ -55,16 +55,33 @@ export function createView(document) {
       const isEditing = editing?.id === todo.id;
       row.classList.toggle('completed', todo.completed);
       row.classList.toggle('editing', isEditing);
-      row.querySelector('.todo-title').textContent = todo.title;
+      const title = row.querySelector('.todo-title');
+      title.textContent = todo.title;
+      title.hidden = isEditing;
+      const location = row.querySelector('.todo-location');
+      location.textContent = todo.location || '—';
+      location.hidden = isEditing;
+      location.classList.toggle('empty-location', !todo.location);
+      if (todo.location) location.removeAttribute('aria-label');
+      else location.setAttribute('aria-label', 'No location');
       const toggle = row.querySelector('.toggle');
       toggle.checked = todo.completed;
+      toggle.disabled = isEditing;
       toggle.setAttribute('aria-label', `Mark “${todo.title}” as ${todo.completed ? 'active' : 'complete'}`);
       row.querySelector('.edit-button').setAttribute('aria-label', `Edit “${todo.title}”`);
       row.querySelector('.destroy').setAttribute('aria-label', `Delete “${todo.title}”`);
+      row.querySelector('.save-edit').setAttribute('aria-label', `Save “${todo.title}”`);
+      row.querySelector('.cancel-edit').setAttribute('aria-label', `Cancel editing “${todo.title}”`);
+      for (const button of row.querySelectorAll('[data-action="edit"], [data-action="delete"]')) button.hidden = isEditing;
+      for (const button of row.querySelectorAll('[data-action="save"], [data-action="cancel"]')) button.hidden = !isEditing;
       const editor = row.querySelector('.edit-input');
       editor.hidden = !isEditing;
       editor.setAttribute('aria-label', `Edit todo: ${todo.title}`);
       if (isEditing && editor.value !== editing.draft) editor.value = editing.draft;
+      const locationEditor = row.querySelector('.edit-location');
+      locationEditor.hidden = !isEditing;
+      locationEditor.setAttribute('aria-label', `Edit location: ${todo.title}`);
+      if (isEditing && locationEditor.value !== editing.locationDraft) locationEditor.value = editing.locationDraft;
       if (row !== cursor) list.insertBefore(row, cursor);
       cursor = row.nextElementSibling;
     }
@@ -73,9 +90,9 @@ export function createView(document) {
       const editor = findRow(editing.id)?.querySelector('.edit-input');
       editor?.focus();
       editor?.select();
-    } else if (focusedId && (!visibleIds.has(focusedId) || (focusedAction === 'editor' && !editing))) {
+    } else if (focusedId && (!visibleIds.has(focusedId) || (['editor', 'save', 'cancel'].includes(focusedAction) && !editing))) {
       const row = findRow(focusedId) ?? list.children[Math.min(focusedIndex, list.children.length - 1)];
-      const action = focusedAction === 'editor' ? 'edit' : focusedAction;
+      const action = ['editor', 'save', 'cancel'].includes(focusedAction) ? 'edit' : focusedAction;
       (row?.querySelector(`[data-action="${action}"]`) ?? newTodo).focus();
     } else if (focused?.id === 'clear-completed' && completed === 0) {
       document.querySelector('[aria-current="page"]').focus();

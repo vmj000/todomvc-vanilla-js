@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { createStorage, STORAGE_INVALID, STORAGE_KEY, STORAGE_UNAVAILABLE } from '../js/storage.js';
 
 const todos = [
-  { id: 'a', title: 'Read', completed: false },
-  { id: 'b', title: '<img src=x onerror=alert(1)>', completed: true },
+  { id: 'a', title: 'Read', location: '', completed: false },
+  { id: 'b', title: '<img src=x onerror=alert(1)>', location: '<svg onload=alert(1)>', completed: true },
 ];
 function memoryStorage(raw) {
   const data = new Map([['unrelated', 'keep me']]);
@@ -27,7 +27,7 @@ test('versioned persistence round-trips IDs, order, completion, and literal titl
 });
 
 test('loading normalizes title whitespace and drops unrelated item properties', () => {
-  const raw = JSON.stringify({ version: 1, todos: [{ ...todos[0], title: '  Read  ', extra: 'ignored' }] });
+  const raw = JSON.stringify({ version: 1, todos: [{ ...todos[0], title: '  Read  ', location: ' \t', extra: 'ignored' }] });
   assert.deepEqual(createStorage(() => memoryStorage(raw)).load().todos, [todos[0]]);
 });
 
@@ -44,6 +44,11 @@ for (const [name, raw] of [
   ['non-string title', JSON.stringify({ version: 1, todos: [{ ...todos[0], title: {} }] })],
   ['non-boolean completion', JSON.stringify({ version: 1, todos: [{ ...todos[0], completed: 'false' }] })],
   ['null item', JSON.stringify({ version: 1, todos: [null] })],
+  ['null location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: null }] })],
+  ['numeric location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: 42 }] })],
+  ['object location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: {} }] })],
+  ['array location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: [] }] })],
+  ['boolean location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: false }] })],
 ]) {
   test(`invalid storage recovers without overwriting the original: ${name}`, () => {
     const memory = memoryStorage(raw);
@@ -66,4 +71,36 @@ test('read failures and quota-exceeded writes are contained', () => {
   }));
   assert.equal(storage.load().error, STORAGE_UNAVAILABLE);
   assert.equal(storage.save(todos), STORAGE_UNAVAILABLE);
+});
+
+test('legacy version1 records load with blank locations without rewriting or losing data', () => {
+  const legacy = [
+    { id: 'first', title: 'Read', completed: true },
+    { id: 'second', title: '<script>literal</script>', completed: false },
+  ];
+  const raw = JSON.stringify({ version: 1, todos: legacy });
+  const memory = memoryStorage(raw);
+  const storage = createStorage(() => memory);
+  const loaded = storage.load();
+  assert.deepEqual(loaded, { todos: legacy.map(todo => ({ ...todo, location: '' })), error: '' });
+  assert.equal(memory.data.get(STORAGE_KEY), raw);
+  assert.equal(memory.data.get('unrelated'), 'keep me');
+  assert.equal(storage.save(loaded.todos), '');
+  assert.deepEqual(storage.load(), loaded);
+});
+
+test('mixed legacy and located records preserve locations, order, IDs, and completion', () => {
+  const mixed = [{ id: 'legacy', title: 'Old todo', completed: true }, { id: 'new', title: 'New todo', location: ' Office ', completed: false }];
+  const storage = createStorage(() => memoryStorage(JSON.stringify({ version: 1, todos: mixed })));
+  assert.deepEqual(storage.load(), { todos: [
+    { id: 'legacy', title: 'Old todo', location: '', completed: true },
+    { id: 'new', title: 'New todo', location: 'Office', completed: false },
+  ], error: '' });
+});
+
+test('saving legacy records writes explicit blank locations under the same key and version', () => {
+  const memory = memoryStorage();
+  const storage = createStorage(() => memory);
+  storage.save([{ id: 'legacy', title: 'Old todo', completed: false }]);
+  assert.deepEqual(JSON.parse(memory.data.get(STORAGE_KEY)), { version: 1, todos: [{ id: 'legacy', title: 'Old todo', location: '', completed: false }] });
 });
