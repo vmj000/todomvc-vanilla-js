@@ -4,6 +4,27 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+test('MY-TODOS is the visible main heading without desktop or mobile overflow', async ({ page }) => {
+  const heading = page.getByRole('heading', { level: 1, name: 'MY-TODOS', exact: true });
+  for (const width of [1280, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(heading).toBeVisible();
+    await expect(heading).toHaveText('MY-TODOS');
+    const textBounds = await heading.evaluate(element => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const { left, right } = range.getBoundingClientRect();
+      return { left, right };
+    });
+    expect(textBounds.left).toBeGreaterThanOrEqual(0);
+    expect(textBounds.right).toBeLessThanOrEqual(width);
+    const pageWidth = await page.evaluate(() => Math.max(
+      document.documentElement.scrollWidth, document.body.scrollWidth,
+    ));
+    expect(pageWidth).toBeLessThanOrEqual(width);
+  }
+});
+
 test('empty state, blank rejection, trimmed creation, ordering, and input focus', async ({ page }) => {
   await expect(page.getByRole('region', { name: 'Your todos' })).toBeHidden();
   await expect(page.getByRole('navigation', { name: 'Filter todos' })).toBeHidden();
