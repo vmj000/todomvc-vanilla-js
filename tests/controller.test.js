@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createController } from '../js/controller.js';
-import { visibleTodos } from '../js/model.js';
+import { remainingCount, visibleTodos } from '../js/model.js';
 import { STORAGE_UNAVAILABLE } from '../js/storage.js';
 
 function setup(options = {}) {
@@ -247,4 +247,80 @@ test('focus transitions within the edited row keep both drafts; leaving a real e
   assert.equal(controller.snapshot().editing, null);
   assert.equal(controller.snapshot().todos[0].location, 'Library');
   assert.equal(saves.length, 1);
+});
+
+test('query changes render without saving or replacing todos, and filters preserve the query', () => {
+  const { controller, saves, renders } = setup();
+  const original = controller.snapshot().todos;
+  assert.equal(controller.snapshot().query, '');
+  controller.setFilter('active');
+  controller.setQuery('  READ ');
+  assert.equal(controller.snapshot().query, '  READ ');
+  assert.equal(controller.snapshot().filter, 'active');
+  assert.equal(controller.snapshot().todos, original);
+  assert.equal(renders.at(-1).query, '  READ ');
+  controller.setFilter('completed');
+  const { todos, filter, query } = controller.snapshot();
+  assert.equal(query, '  READ ');
+  assert.deepEqual(visibleTodos(todos, filter, query), []);
+  controller.setQuery('   ');
+  assert.deepEqual(visibleTodos(todos, filter, controller.snapshot().query).map(todo => todo.id), ['b']);
+  controller.setQuery('');
+  assert.equal(saves.length, 0);
+  assert.equal(setup({ initialTodos: todos, filter }).controller.snapshot().query, '');
+});
+
+test('searching commits both pending edit drafts once before hiding the row', () => {
+  const { controller, saves } = setup();
+  controller.startEdit('a');
+  controller.setDraft('a', 'Read more');
+  controller.setLocationDraft('a', 'Library');
+  controller.setQuery('walk');
+  controller.finishEdit('a');
+  assert.equal(controller.snapshot().editing, null);
+  assert.deepEqual(controller.snapshot().todos[0], { id: 'a', title: 'Read more', location: 'Library', completed: false });
+  assert.equal(controller.snapshot().query, 'walk');
+  assert.equal(saves.length, 1);
+  controller.setQuery('read');
+  assert.equal(saves.length, 1);
+});
+
+test('search leaves counts and bulk operations scoped to all todos, including hidden rows', () => {
+  const { controller, saves } = setup();
+  const visible = () => {
+    const { todos, filter, query } = controller.snapshot();
+    return visibleTodos(todos, filter, query).map(todo => todo.id);
+  };
+  controller.setQuery('read');
+  assert.deepEqual(visible(), ['a']);
+  assert.equal(remainingCount(controller.snapshot().todos), 2);
+  controller.dispatch({ type: 'toggle-all' });
+  assert.ok(controller.snapshot().todos.every(todo => todo.completed));
+  assert.equal(remainingCount(controller.snapshot().todos), 0);
+  assert.deepEqual(visible(), ['a']);
+  assert.equal(saves.length, 1);
+  assert.ok(saves[0].every(todo => todo.completed));
+  controller.setFilter('active');
+  assert.deepEqual(visible(), []);
+  controller.dispatch({ type: 'toggle-all' });
+  assert.deepEqual(visible(), ['a']);
+  assert.equal(remainingCount(controller.snapshot().todos), 3);
+  controller.dispatch({ type: 'toggle', id: 'b' });
+  controller.dispatch({ type: 'clear-completed' });
+  assert.deepEqual(controller.snapshot().todos.map(todo => todo.id), ['a', 'c']);
+  assert.equal(controller.snapshot().filter, 'active');
+  assert.equal(controller.snapshot().query, 'read');
+});
+
+test('empty-list search remains transient and new matching todos use the existing query', () => {
+  const { controller, saves } = setup({ initialTodos: [], initialError: STORAGE_UNAVAILABLE });
+  controller.setQuery(' OFFICE ');
+  assert.equal(controller.snapshot().storageError, STORAGE_UNAVAILABLE);
+  assert.equal(saves.length, 0);
+  controller.add('Prepare demo', 'Office');
+  const { todos, filter, query } = controller.snapshot();
+  assert.deepEqual(visibleTodos(todos, filter, query).map(todo => todo.title), ['Prepare demo']);
+  assert.equal(saves.length, 1);
+  assert.ok(Array.isArray(saves[0]));
+  assert.equal(saves[0][0].query, undefined);
 });

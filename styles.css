@@ -41,6 +41,10 @@ h1 { margin: 0; color: var(--accent); font-size: clamp(76px, 15vw, 100px); font-
 .new-location::placeholder { color: #757575; opacity: 1; }
 .add-todo { min-height: 40px; margin-right: 16px; border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .add-todo:hover { background: #8d3036; }
+.search-field { padding: 12px 16px; border-top: 1px solid var(--line); }
+.search-field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.search-field input { display: block; width: 100%; min-width: 0; min-height: 40px; border: 1px solid #b6b6b6; border-radius: 3px; padding: 8px 10px; color: #454545; background: #fff; font-size: 16px; }
+.search-field input::placeholder { color: #757575; opacity: 1; }
 .toggle-all-wrap { position: absolute; left: 13px; top: 14px; z-index: 1; width: 36px; height: 42px; }
 .toggle-all { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
 .toggle-all-label { display: grid; place-items: center; width: 100%; height: 100%; color: #929292; border-radius: 4px; }

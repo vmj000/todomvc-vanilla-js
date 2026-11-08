@@ -25,6 +25,7 @@ export const test = base.extend({
 export { expect };
 export const newTodo = page => page.getByRole('textbox', { name: 'What needs to be done?', exact: true });
 export const newLocation = page => page.getByRole('textbox', { name: 'Location (optional)', exact: true });
+export const search = page => page.getByRole('searchbox', { name: 'Search todos', exact: true });
 export const todoTable = page => page.getByRole('table', { name: 'Todo list', exact: true });
 export const todoRows = page => todoTable(page).getByRole('row').filter({
   has: page.locator('.todo-title'),
