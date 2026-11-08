@@ -125,3 +125,49 @@ test('HTML-like location strings remain literal data', () => {
   assert.equal(todos[0].location, location);
   assert.equal(updateTodos(todos, { type: 'edit', id: 'a', title: 'Read', location: '<script>x</script>' })[0].location, '<script>x</script>');
 });
+
+const searchFixture = () => [
+  { id: 'milk', title: 'Buy milk', location: 'Corner shop', completed: false },
+  { id: 'demo', title: 'Prepare demo', location: 'Office', completed: true },
+  { id: 'docs', title: 'Read docs', location: 'Home', completed: false },
+  { id: 'legacy', title: 'Read old notes', completed: false },
+];
+
+test('search matches trimmed, case-insensitive substrings of either field in original order', () => {
+  const todos = searchFixture();
+  const original = structuredClone(todos);
+  for (const [query, ids] of [
+    [' OFFICE', ['demo']], ['  MILK \n', ['milk']], ['NER SH', ['milk']],
+    ['read', ['docs', 'legacy']], ['e', ['milk', 'demo', 'docs', 'legacy']],
+    ['absent', []], ['undefined', []], ['.*', []],
+  ]) {
+    assert.deepEqual(visibleTodos(todos, 'all', query).map(todo => todo.id), ids);
+  }
+  assert.deepEqual(todos, original);
+  assert.equal(visibleTodos(todos, 'all', 'milk')[0], todos[0]);
+});
+
+test('search intersects each completion filter and blank queries restore its full results', () => {
+  const todos = searchFixture();
+  assert.deepEqual(visibleTodos(todos, 'active', 'office'), []);
+  assert.deepEqual(visibleTodos(todos, 'active', 'read').map(todo => todo.id), ['docs', 'legacy']);
+  assert.deepEqual(visibleTodos(todos, 'completed', 'office').map(todo => todo.id), ['demo']);
+  assert.deepEqual(visibleTodos(todos, 'completed', 'milk'), []);
+  for (const filter of ['all', 'active', 'completed']) {
+    for (const query of ['', ' \n\t ']) {
+      assert.deepEqual(visibleTodos(todos, filter, query), visibleTodos(todos, filter));
+    }
+  }
+  assert.equal(visibleTodos(todos, 'all', '   '), todos);
+  assert.deepEqual(visibleTodos([], 'all', 'office'), []);
+});
+
+test('legacy locations are empty, and HTML-like search text is matched literally', () => {
+  const todos = [
+    { id: 'old', title: '<img src=x>', completed: false },
+    { id: 'new', title: 'Safe title', location: '<svg onload=x>', completed: true },
+  ];
+  assert.deepEqual(visibleTodos(todos, 'all', '<IMG').map(todo => todo.id), ['old']);
+  assert.deepEqual(visibleTodos(todos, 'all', '<SVG').map(todo => todo.id), ['new']);
+  assert.deepEqual(visibleTodos(todos, 'all', 'undefined'), []);
+});

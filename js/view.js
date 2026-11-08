@@ -4,17 +4,18 @@ export function createView(document) {
   const list = document.querySelector('#todo-list');
   const template = document.querySelector('#todo-template');
   const newTodo = document.querySelector('#new-todo');
+  const search = document.querySelector('#todo-search');
   const rows = new Map();
   let previousEditingId = null;
   const findRow = id => rows.get(id);
 
-  function render({ todos, filter, editing, storageError }) {
+  function render({ todos, filter, query, editing, storageError }) {
     const focused = document.activeElement;
     const focusedRow = focused?.closest('.todo');
     const focusedId = focusedRow?.dataset.id;
     const focusedAction = focused?.dataset.action;
     const focusedIndex = focusedRow ? [...list.children].indexOf(focusedRow) : -1;
-    const visible = visibleTodos(todos, filter);
+    const visible = visibleTodos(todos, filter, query);
     const visibleIds = new Set(visible.map(todo => todo.id));
     const active = remainingCount(todos);
     const completed = todos.length - active;
@@ -29,7 +30,10 @@ export function createView(document) {
     toggleAll.setAttribute('aria-label', active ? 'Mark all todos as complete' : 'Mark all todos as active');
     document.querySelector('#todo-count').textContent = `${active} ${active === 1 ? 'item' : 'items'} left`;
     document.querySelector('#clear-completed').hidden = completed === 0;
-    document.querySelector('#filter-empty').hidden = !hasTodos || visible.length > 0;
+    if (search.value !== query) search.value = query;
+    const empty = document.querySelector('#filter-empty');
+    empty.textContent = query.trim() ? 'No todos match your search.' : 'No todos here. A little breathing room.';
+    empty.hidden = visible.length > 0 || (!hasTodos && !query.trim());
     for (const link of document.querySelectorAll('[data-filter]')) {
       if (link.dataset.filter === filter) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
@@ -95,7 +99,7 @@ export function createView(document) {
       const action = ['editor', 'save', 'cancel'].includes(focusedAction) ? 'edit' : focusedAction;
       (row?.querySelector(`[data-action="${action}"]`) ?? newTodo).focus();
     } else if (focused?.id === 'clear-completed' && completed === 0) {
-      document.querySelector('[aria-current="page"]').focus();
+      (hasTodos ? document.querySelector('[aria-current="page"]') : search).focus();
     } else if (focused?.id === 'toggle-all' && !hasTodos) {
       newTodo.focus();
     }

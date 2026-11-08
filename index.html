@@ -34,6 +34,10 @@
             <button class="add-todo" type="submit">Add todo</button>
           </form>
         </header>
+        <div class="search-field">
+          <label for="todo-search">Search todos</label>
+          <input id="todo-search" type="search" placeholder="Search titles or locations" autocomplete="off">
+        </div>
         <section class="main" id="main" aria-label="Your todos" hidden>
           <div class="table-scroll" role="region" aria-label="Todo table, scroll horizontally to see all columns" tabindex="0">
             <table class="todo-table" aria-label="Todo list">
@@ -55,8 +59,8 @@
               <tbody class="todo-list" id="todo-list"></tbody>
             </table>
           </div>
-          <p class="filter-empty" id="filter-empty" hidden>No todos here. A little breathing room.</p>
         </section>
+        <p class="filter-empty" id="filter-empty" role="status" aria-live="polite" aria-atomic="true" hidden>No todos here. A little breathing room.</p>
         <footer class="footer" id="footer" hidden>
           <span class="todo-count" id="todo-count" role="status" aria-live="polite" aria-atomic="true"></span>
           <nav class="filters" aria-label="Filter todos">

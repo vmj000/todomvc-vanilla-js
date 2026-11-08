@@ -8,7 +8,8 @@ export function createController({
   let editing = null;
   let storageError = initialError;
   let currentFilter = FILTERS.includes(filter) ? filter : 'all';
-  const snapshot = () => ({ todos, editing, filter: currentFilter, storageError });
+  let query = '';
+  const snapshot = () => ({ todos, editing, filter: currentFilter, query, storageError });
   const emit = () => render(snapshot());
 
   function mutate(action) {
@@ -36,6 +37,11 @@ export function createController({
     setFilter(filter) {
       if (editing) controller.finishEdit(editing.id);
       currentFilter = FILTERS.includes(filter) ? filter : 'all';
+      emit();
+    },
+    setQuery(value) {
+      if (editing) controller.finishEdit(editing.id);
+      query = value;
       emit();
     },
     startEdit(id) {

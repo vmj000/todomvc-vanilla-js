@@ -24,6 +24,8 @@ Open **http://127.0.0.1:3000**. Stop with Ctrl+C. To use another port, run `PORT
 - Double-click a task or activate its edit button to edit task and location together. Enter or Save commits both fields; Escape or Cancel restores both. Moving between that row's fields and buttons keeps editing; leaving the row saves. An empty task deletes the item, while an empty location only clears its location.
 - Use the delete button to remove an item or Clear completed to remove every completed item.
 - All, Active, and Completed use hash URLs and support Back/Forward.
+- Search todos instantly by a trimmed, case-insensitive substring of the task or location. Search combines with the selected completion filter and keeps task order; clear the query (or enter only spaces) to restore that filter's full list. A message explains when nothing matches, and search stays available on an empty list.
+- Search changes visibility only: counts, toggle-all, and Clear completed still cover the entire list, including hidden tasks. The query stays in memory, never changes the hash URL or saved data, and clears on reload. Leaving an edited row for search saves both edit fields as usual.
 - All controls work with the keyboard. Row actions appear on hover, keyboard focus, and touch-sized screens.
 - On narrow screens, the table scrolls horizontally inside its labeled, keyboard-focusable region without making the page overflow. Long tasks and locations wrap inside their cells.
 
@@ -38,7 +40,7 @@ npm test
 npm run check
 ```
 
-Tests use Node's built-in runner and cover state transitions, routes, editing lifecycle, filtered bulk actions, storage validation/failure, and literal title preservation.
+Tests use Node's built-in runner and cover state transitions, routes, editing lifecycle, title/location search, filtered bulk actions, storage validation/failure, and literal title preservation.
 
 ### Reproducible browser tests
 
@@ -53,6 +55,8 @@ On a Linux machine that needs browser system libraries, use `npx playwright inst
 The suite runs against Playwright's Chromium, Firefox, and WebKit with a fresh browser context and isolated storage for every test. It starts and stops the existing server on **http://127.0.0.1:4173**. Keep that port free; the suite deliberately refuses to reuse an existing server.
 
 Coverage includes trimmed/blank creation, Enter/blur/Escape editing and empty-title deletion, completion, global counts, filters and filtered bulk actions, clearing/deleting, reload persistence, hash Back/Forward, literal HTML-like titles, native browser keyboard input and focus recovery, and long-title/control bounds at 320px and 1280px. Storage tests simulate malformed saved data, blocked storage, and quota failures with recovery. Every test rejects uncaught browser errors, console errors, failed HTTP requests, and unexpected dialogs.
+
+Search regressions cover matching both fields, combined filters, clearing/blank queries, no matches and empty lists, legacy todos without locations, hidden-item bulk actions, unchanged storage/hash routes, reload reset, editing/focus, literal HTML-like search text, and search controls at both viewport widths.
 
 These are browser-engine tests, not branded Chrome/Firefox/Safari builds or real mobile-device tests. The 320px checks exercise responsive CSS, not a physical touchscreen.
 On macOS only, the sequential Tab-navigation case is skipped in WebKit because it depends on host Full Keyboard Access settings. The other WebKit tests still cover Enter/Escape, editing focus, and keyboard-triggered focus recovery. Linux CI runs the Tab-navigation case in all three engines.
@@ -84,7 +88,7 @@ For a browser smoke test, start the server and:
 ## Structure
 
 - `js/model.js`: pure immutable todo operations and selectors.
-- `js/controller.js`: mutations, editing lifecycle, filter state, and save/render coordination.
+- `js/controller.js`: mutations, editing lifecycle, filter and transient search state, and save/render coordination.
 - `js/storage.js`: versioned, validated local storage with failure recovery.
 - `js/view.js`: keyed DOM updates, accessible labels, and focus management. Titles use `textContent`, never HTML.
 - `js/app.js`: browser event wiring.

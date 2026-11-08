@@ -1,4 +1,4 @@
-import { test, expect, addTodos, count, filter, newLocation, newTodo, titles, todo } from './fixtures.js';
+import { test, expect, addTodos, count, filter, newLocation, newTodo, search, titles, todo } from './fixtures.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -185,6 +185,8 @@ test('native keyboard navigation can complete, edit, and delete with predictable
   await expect(newLocation(page)).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Add todo', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(search(page)).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('region', { name: 'Todo table, scroll horizontally to see all columns', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');

@@ -1,4 +1,4 @@
-import { test, expect, addTodos, location, newLocation, newTodo, titles, todo, todoTable } from './fixtures.js';
+import { test, expect, addTodos, location, newLocation, newTodo, search, titles, todo, todoTable } from './fixtures.js';
 
 async function expectReachable(page, control, width) {
   await control.scrollIntoViewIfNeeded();
@@ -28,6 +28,14 @@ for (const width of [320, 1280]) {
     expect(['auto', 'scroll']).toContain(dimensions.overflowX);
     if (width === 320) expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.width);
     await expectReachable(page, newLocation(page), width);
+    await expectReachable(page, search(page), width);
+    await search(page).fill(' LONG PLACE ');
+    await expect(titles(page)).toHaveText([longTitle]);
+    await search(page).fill('no matching todo');
+    await expect(page.getByText('No todos match your search.', { exact: true })).toBeVisible();
+    await expectReachable(page, search(page), width);
+    await search(page).fill('');
+    await expect(titles(page)).toHaveText([longTitle, 'Short title']);
     const row = todo(page, longTitle);
     if (width > 560) await row.hover();
     const edit = row.getByRole('button', { name: `Edit “${longTitle}”`, exact: true });

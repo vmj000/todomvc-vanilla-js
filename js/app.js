@@ -32,6 +32,9 @@ document.querySelector('#toggle-all').addEventListener('change', () => {
 document.querySelector('#clear-completed').addEventListener('click', () => {
   controller.dispatch({ type: 'clear-completed' });
 });
+document.querySelector('#todo-search').addEventListener('input', event => {
+  controller.setQuery(event.target.value);
+});
 window.addEventListener('hashchange', () => controller.setFilter(filterFromHash(location.hash)));
 
 list.addEventListener('change', event => {

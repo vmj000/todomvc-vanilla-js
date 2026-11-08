@@ -4,10 +4,12 @@ export function filterFromHash(hash) {
   return ({ '#/active': 'active', '#/completed': 'completed' })[hash] ?? 'all';
 }
 
-export function visibleTodos(todos, filter) {
-  if (filter === 'active') return todos.filter(todo => !todo.completed);
-  if (filter === 'completed') return todos.filter(todo => todo.completed);
-  return todos;
+export function visibleTodos(todos, filter, query = '') {
+  const filtered = filter === 'active' ? todos.filter(todo => !todo.completed)
+    : filter === 'completed' ? todos.filter(todo => todo.completed) : todos;
+  const search = query.trim().toLowerCase();
+  return search ? filtered.filter(todo => todo.title.toLowerCase().includes(search)
+    || (todo.location ?? '').toLowerCase().includes(search)) : filtered;
 }
 
 export function remainingCount(todos) {
