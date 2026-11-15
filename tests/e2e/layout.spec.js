@@ -1,4 +1,4 @@
-import { test, expect, addTodos, location, newLocation, newTodo, titles, todo, todoTable } from './fixtures.js';
+import { test, expect, addTodos, category, location, newCategory, newLocation, newTodo, titles, todo, todoTable } from './fixtures.js';
 
 async function expectReachable(page, control, width) {
   await control.scrollIntoViewIfNeeded();
@@ -28,6 +28,7 @@ for (const width of [320, 1280]) {
     expect(['auto', 'scroll']).toContain(dimensions.overflowX);
     if (width === 320) expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.width);
     await expectReachable(page, newLocation(page), width);
+    await expectReachable(page, newCategory(page), width);
     const row = todo(page, longTitle);
     if (width > 560) await row.hover();
     const edit = row.getByRole('button', { name: `Edit “${longTitle}”`, exact: true });
@@ -47,16 +48,19 @@ for (const width of [320, 1280]) {
     const editor = page.getByRole('textbox', { name: `Edit todo: ${longTitle}`, exact: true });
     await expect(editor).toBeFocused();
     const locationEditor = page.getByRole('textbox', { name: `Edit location: ${longTitle}`, exact: true });
+    const categoryEditor = page.getByRole('combobox', { name: `Edit category: ${longTitle}`, exact: true });
     for (const control of [
-      editor, locationEditor,
+      editor, locationEditor, categoryEditor,
       page.getByRole('button', { name: `Save “${longTitle}”`, exact: true }),
       page.getByRole('button', { name: `Cancel editing “${longTitle}”`, exact: true }),
     ]) await expectReachable(page, control, width);
     await editor.fill('Updated on a small screen');
     await locationEditor.fill('Updated location');
+    await categoryEditor.selectOption('health');
     await editor.press('Enter');
     await expect(titles(page)).toHaveText(['Updated on a small screen', 'Short title']);
     await expect(location(page, 'Updated on a small screen')).toHaveText('Updated location');
+    await expect(category(page, 'Updated on a small screen')).toHaveText('health');
     await page.getByRole('button', { name: 'Delete “Updated on a small screen”', exact: true }).click();
     await expect(titles(page)).toHaveText(['Short title']);
     await expect(newTodo(page)).toBeVisible();

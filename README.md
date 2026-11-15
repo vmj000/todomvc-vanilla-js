@@ -1,6 +1,6 @@
 # Vanilla TodoMVC
 
-A tabular TodoMVC in plain HTML, CSS, and JavaScript, with optional task locations. No framework, build step, backend, or runtime dependencies. Playwright is a development-only dependency.
+A tabular TodoMVC in plain HTML, CSS, and JavaScript, with optional task locations and task categories. No framework, build step, backend, or runtime dependencies. Playwright is a development-only dependency.
 
 Live app: **https://vmj000.github.io/todomvc-vanilla-js/**. See [deployment instructions](docs/deployment.md) for GitHub Pages setup and verification.
 The live app tracks `main`; feature-branch changes are not deployed before merge.
@@ -18,10 +18,11 @@ Open **http://127.0.0.1:3000**. Stop with Ctrl+C. To use another port, run `PORT
 
 ## Use
 
-- Use the table's Completion, Task, Location, and Actions columns to manage todos.
-- Type a task, optionally add a free-text location, and press Enter or select Add todo. Both fields are trimmed; whitespace-only tasks are ignored. Location needs no map, account, or geolocation permission.
+- Use the table's Completion, Task, Location, Category, and Actions columns to manage todos.
+- Type a task, optionally add a free-text location, choose a category, and press Enter from a text field or select Add todo. Task and location are trimmed; whitespace-only tasks are ignored. Location needs no map, account, or geolocation permission.
+- Category is a native dropdown with exactly `work`, `health`, and `home`. New tasks default to `work`, and successful creation resets the dropdown to `work`.
 - Check an item to complete it. The top chevron toggles **all** items, including those outside the current filter.
-- Double-click a task or activate its edit button to edit task and location together. Enter or Save commits both fields; Escape or Cancel restores both. Moving between that row's fields and buttons keeps editing; leaving the row saves. An empty task deletes the item, while an empty location only clears its location.
+- Double-click a task or activate its edit button to edit task, location, and category together. The Category cell becomes a dropdown during editing. Enter or Save commits all three fields; Escape or Cancel restores them. Moving between that row's text fields, category dropdown, and buttons keeps editing; leaving the row saves. An empty task deletes the item, while an empty location only clears its location.
 - Use the delete button to remove an item or Clear completed to remove every completed item.
 - All, Active, and Completed use hash URLs and support Back/Forward.
 - All controls work with the keyboard. Row actions appear on hover, keyboard focus, and touch-sized screens.
@@ -29,7 +30,7 @@ Open **http://127.0.0.1:3000**. Stop with Ctrl+C. To use another port, run `PORT
 
 Todos stay in this browser, on this origin, under `vanilla-todomvc:v1` in `localStorage`. They are never sent to a service. Private browsing, clearing site data, changing the port/origin, or using another device may give you a separate or empty list. If browser storage fails, the app keeps working in memory and displays a warning. Malformed saved data is ignored; the next change writes a fresh valid list. There is no cross-tab conflict resolution.
 
-The optional `location` field is additive within the existing version1 payload and storage key. Legacy todos without it load with an empty location, preserving IDs, order, tasks, and completion without rewriting storage on load. A supplied location must be a string; loaded text is trimmed and rendered literally, never as HTML.
+The `location` and `category` fields are additive within the existing version1 payload and storage key. Legacy todos load with an empty location and/or category `work` only when those fields are missing, preserving IDs, order, tasks, locations, and completion without rewriting storage on load. The next mutation saves explicit defaults. A supplied location must be a string; a supplied category must be exactly `work`, `health`, or `home` (other values/types are rejected, not silently defaulted). Loaded text is trimmed and rendered literally, never as HTML. Old title/location-only edit callers preserve the existing category.
 
 ## Validate
 
@@ -38,7 +39,7 @@ npm test
 npm run check
 ```
 
-Tests use Node's built-in runner and cover state transitions, routes, editing lifecycle, filtered bulk actions, storage validation/failure, and literal title preservation.
+Tests use Node's built-in runner and cover state transitions, routes, combined editing lifecycle, category defaults/options, filtered bulk actions, legacy storage migration, validation/failure, and literal text preservation.
 
 ### Reproducible browser tests
 
@@ -52,7 +53,7 @@ On a Linux machine that needs browser system libraries, use `npx playwright inst
 
 The suite runs against Playwright's Chromium, Firefox, and WebKit with a fresh browser context and isolated storage for every test. It starts and stops the existing server on **http://127.0.0.1:4173**. Keep that port free; the suite deliberately refuses to reuse an existing server.
 
-Coverage includes trimmed/blank creation, Enter/blur/Escape editing and empty-title deletion, completion, global counts, filters and filtered bulk actions, clearing/deleting, reload persistence, hash Back/Forward, literal HTML-like titles, native browser keyboard input and focus recovery, and long-title/control bounds at 320px and 1280px. Storage tests simulate malformed saved data, blocked storage, and quota failures with recovery. Every test rejects uncaught browser errors, console errors, failed HTTP requests, and unexpected dialogs.
+Coverage includes trimmed/blank creation, all three category options, combined select/text editing with Save/Enter/blur and Cancel/Escape, empty-title deletion, completion, global counts, filters and filtered bulk actions, clearing/deleting, reload persistence, hash Back/Forward, literal HTML-like text, native browser keyboard input and focus recovery, and long-text/dropdown/control bounds at 320px and 1280px. Storage tests simulate malformed saved data (including invalid categories), legacy defaults, blocked storage, and quota failures with recovery. Every test rejects uncaught browser errors, console errors, failed HTTP requests, and unexpected dialogs.
 
 These are browser-engine tests, not branded Chrome/Firefox/Safari builds or real mobile-device tests. The 320px checks exercise responsive CSS, not a physical touchscreen.
 On macOS only, the sequential Tab-navigation case is skipped in WebKit because it depends on host Full Keyboard Access settings. The other WebKit tests still cover Enter/Escape, editing focus, and keyboard-triggered focus recovery. Linux CI runs the Tab-navigation case in all three engines.
@@ -75,8 +76,8 @@ For a browser smoke test, start the server and:
 
 1. Add three items, complete one, and verify the count and all three filters.
 2. Under Active, toggle all. Verify the empty filtered state, then use Completed to inspect all items.
-3. Create and edit locations, including leaving one blank. Move between task and location editors, then check Enter, Save, Cancel, Escape, leaving the row, and empty-task deletion.
-4. Reload and navigate Back/Forward. Verify titles, order, completion, and selected filter.
+3. Create each category and edit task/location/category together, including leaving a location blank. Move between text editors and the category dropdown, then check Enter, Save, Cancel, Escape, leaving the row, and empty-task deletion.
+4. Reload and navigate Back/Forward. Verify titles, locations, categories, order, completion, and selected filter.
 5. Enter `<img src=x onerror=alert(1)>` as both task and location. Verify it appears as literal text, not an image.
 6. Use only Tab, Shift+Tab, Enter, Space, and Escape. Check focus after deletion and editing.
 7. Check desktop and 320px-wide layouts, including long tasks/locations, for cell wrapping and contained table scrolling without page overflow.

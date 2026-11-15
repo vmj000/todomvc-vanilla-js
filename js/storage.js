@@ -1,3 +1,5 @@
+import { CATEGORIES, DEFAULT_CATEGORY } from './model.js';
+
 export const STORAGE_KEY = 'vanilla-todomvc:v1';
 export const STORAGE_UNAVAILABLE = 'Your browser could not save your todos. You can keep working, but changes may not survive a reload.';
 export const STORAGE_INVALID = 'Saved todos could not be loaded. Starting with an empty list.';
@@ -9,6 +11,7 @@ function validTodos(todos) {
     if (!todo || typeof todo.id !== 'string' || !todo.id.trim() || ids.has(todo.id)
       || typeof todo.title !== 'string' || !todo.title.trim()
       || (todo.location !== undefined && typeof todo.location !== 'string')
+      || (todo.category !== undefined && !CATEGORIES.includes(todo.category))
       || typeof todo.completed !== 'boolean') return false;
     ids.add(todo.id);
     return true;
@@ -29,7 +32,9 @@ export function createStorage(getStorage = () => window.localStorage) {
         const data = JSON.parse(raw);
         if (data?.version !== 1 || !validTodos(data.todos)) throw new Error('Invalid saved todos');
         return {
-          todos: data.todos.map(({ id, title, location = '', completed }) => ({ id, title: title.trim(), location: location.trim(), completed })),
+          todos: data.todos.map(({ id, title, location = '', category = DEFAULT_CATEGORY, completed }) => ({
+            id, title: title.trim(), location: location.trim(), category, completed,
+          })),
           error: '',
         };
       } catch {
@@ -38,7 +43,10 @@ export function createStorage(getStorage = () => window.localStorage) {
     },
     save(todos) {
       try {
-        const normalized = todos.map(({ id, title, location = '', completed }) => ({ id, title, location, completed }));
+        if (!validTodos(todos)) return STORAGE_INVALID;
+        const normalized = todos.map(({ id, title, location = '', category = DEFAULT_CATEGORY, completed }) => ({
+          id, title, location, category, completed,
+        }));
         getStorage().setItem(STORAGE_KEY, JSON.stringify({ version: 1, todos: normalized }));
         return '';
       } catch {

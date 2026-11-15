@@ -3,6 +3,7 @@
   const q = selector => document.querySelector(selector);
   const titles = () => [...document.querySelectorAll('.todo-title')].map(node => node.textContent);
   const locations = () => [...document.querySelectorAll('.todo-location')].map(node => node.textContent);
+  const categories = () => [...document.querySelectorAll('.todo-category')].map(node => node.textContent);
   const assert = (condition, name) => {
     if (!condition) throw new Error(`Browser check failed: ${name}`);
     checks.push(name);
@@ -11,9 +12,10 @@
     node.value = value;
     node.dispatchEvent(new Event('input', { bubbles: true }));
   };
-  const add = (title, location = '') => {
+  const add = (title, location = '', category = 'work') => {
     input(q('#new-todo'), title);
     input(q('#new-location'), location);
+    input(q('#new-category'), category);
     q('#new-todo-form').requestSubmit();
   };
   const route = async hash => {
@@ -23,22 +25,25 @@
     await changed;
   };
   const key = value => q('.editing .edit-input').dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true }));
-  const edit = (index, value, location) => {
+  const edit = (index, value, location, category) => {
     document.querySelectorAll('.edit-button')[index].click();
     input(q('.editing .edit-input'), value);
     if (location !== undefined) input(q('.editing .edit-location'), location);
+    if (category !== undefined) input(q('.editing .edit-category'), category);
   };
 
   assert(q('#main').hidden && q('#footer').hidden, 'initial empty state hides main and footer');
   add('   ');
   assert(titles().length === 0, 'blank additions are ignored');
   add('  Read a book  ', '  Home  ');
-  add('Take a walk', 'Park');
-  add('Make some tea');
+  add('Take a walk', 'Park', 'health');
+  add('Make some tea', '', 'home');
   assert(JSON.stringify(titles()) === JSON.stringify(['Read a book', 'Take a walk', 'Make some tea']), 'trimmed additions preserve order');
   const table = q('table[aria-label="Todo list"]');
-  assert(table && JSON.stringify([...table.querySelectorAll('thead th')].map(node => node.textContent)) === JSON.stringify(['Completion', 'Task', 'Location', 'Actions']), 'semantic table exposes completion, task, location, and actions columns');
-  assert(q('#todo-list').tagName === 'TBODY' && q('.todo').tagName === 'TR' && q('.todo').querySelectorAll('td').length === 4, 'todos render as four-cell table rows');
+  assert(table && JSON.stringify([...table.querySelectorAll('thead th')].map(node => node.textContent)) === JSON.stringify(['Completion', 'Task', 'Location', 'Category', 'Actions']), 'semantic table exposes completion, task, location, category, and actions columns');
+  assert(q('#todo-list').tagName === 'TBODY' && q('.todo').tagName === 'TR' && q('.todo').querySelectorAll('td').length === 5, 'todos render as five-cell table rows');
+  assert(JSON.stringify([...q('#new-category').options].map(option => option.value)) === JSON.stringify(['work', 'health', 'home']) && q('#new-category').value === 'work', 'creation category has exactly three options and resets to work');
+  assert(JSON.stringify(categories()) === JSON.stringify(['work', 'health', 'home']), 'creation preserves all three categories');
   assert(JSON.stringify(locations()) === JSON.stringify(['Home', 'Park', '—']), 'optional locations trim and show an accessible empty placeholder');
   assert(document.querySelectorAll('.todo-location')[2].getAttribute('aria-label') === 'No location' && q('#new-location').value === '', 'blank location is labeled and creation clears the location input');
   assert(q('#todo-count').textContent === '3 items left' && q('#new-todo') === document.activeElement, 'addition keeps input focus and updates count');
@@ -52,6 +57,7 @@
   await route('#/completed');
   assert(titles().length === 3, 'completed filter includes the entire completed collection');
   assert(JSON.stringify(locations()) === JSON.stringify(['Home', 'Park', '—']), 'bulk completion and filters preserve locations');
+  assert(JSON.stringify(categories()) === JSON.stringify(['work', 'health', 'home']), 'bulk completion and filters preserve categories');
   q('#toggle-all').click();
   assert(titles().length === 0 && q('#todo-count').textContent === '3 items left', 'second bulk toggle activates all items across the filter');
   await route('#/active');
@@ -60,9 +66,11 @@
   assert(JSON.stringify(titles()) === JSON.stringify(['Take a walk', 'Make some tea']), 'clear completed removes items hidden by the active filter');
   assert(q('#clear-completed').hidden, 'clear completed hides when there is nothing to clear');
   await route('#/');
-  edit(0, '  Walk by the river  ', '  Riverbank  ');
+  edit(0, '  Walk by the river  ', '  Riverbank  ', 'home');
   q('.editing .edit-location').focus();
   assert(q('.editing .edit-input').value === '  Walk by the river  ' && q('.editing .toggle').disabled, 'moving between edit fields retains both drafts and disables the row toggle');
+  q('.editing .edit-category').focus();
+  assert(q('.editing .edit-location').value === '  Riverbank  ' && q('.editing .edit-category').value === 'home', 'moving into category select retains all drafts');
   q('.editing button[aria-label^="Save "]').focus();
   assert(q('.editing .edit-location').value === '  Riverbank  ', 'moving to an edit action does not commit prematurely');
   key('Enter');
@@ -70,12 +78,14 @@
   q('#new-todo').focus();
   assert(titles()[0] === 'Walk by the river' && titles().length === 2, 'Enter and subsequent blur commit once');
   assert(locations()[0] === 'Riverbank', 'Enter commits a trimmed location with the title');
-  edit(0, '', 'Discard this location');
+  assert(categories()[0] === 'home', 'Enter commits category with title and location');
+  edit(0, '', 'Discard this location', 'health');
   key('Escape');
   assert(document.activeElement === q('.edit-button'), 'Escape restores focus to the row edit button');
   q('#new-todo').focus();
   assert(titles()[0] === 'Walk by the river' && titles().length === 2, 'Escape and subsequent blur cancel a blank draft without deletion');
   assert(locations()[0] === 'Riverbank', 'Escape cancels the location draft together with the title');
+  assert(categories()[0] === 'home', 'Escape cancels the category draft');
   edit(0, 'Walk outside', '  Outdoors  ');
   q('#new-todo').focus();
   assert(titles()[0] === 'Walk outside', 'blur commits an edited title');
@@ -115,5 +125,6 @@
   const saved = JSON.parse(localStorage.getItem('vanilla-todomvc:v1'));
   assert(saved.version === 1 && saved.todos.length === 2 && saved.todos[0].completed, 'persistent payload preserves order and completion');
   assert(saved.todos[0].location === literalLocation && saved.todos[1].location.includes('b'.repeat(220)), 'persistent payload includes literal and long locations');
+  assert(saved.todos.every(todo => todo.category === 'work'), 'persistent payload includes default categories');
   return { passed: checks.length, checks, saved };
 })()

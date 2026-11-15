@@ -1,4 +1,4 @@
-import { test, expect, addTodos, count, filter, newLocation, newTodo, titles, todo } from './fixtures.js';
+import { test, expect, addTodos, category, count, filter, newCategory, newLocation, newTodo, titles, todo } from './fixtures.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -205,6 +205,10 @@ test('native keyboard navigation can complete, edit, and delete with predictable
   await newTodo(page).press('Tab');
   await expect(newLocation(page)).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(newCategory(page)).toBeFocused();
+  await newCategory(page).press('h');
+  await expect(newCategory(page)).toHaveValue('health');
+  await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Add todo', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('region', { name: 'Todo table, scroll horizontally to see all columns', exact: true })).toBeFocused();
@@ -217,7 +221,15 @@ test('native keyboard navigation can complete, edit, and delete with predictable
   await page.keyboard.press('Space');
   await expect(page.getByRole('textbox', { name: 'Edit todo: First', exact: true })).toBeFocused();
   await page.keyboard.type('Renamed');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('textbox', { name: 'Edit location: First', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  const categoryEditor = page.getByRole('combobox', { name: 'Edit category: First', exact: true });
+  await expect(categoryEditor).toBeFocused();
+  await categoryEditor.press('h');
+  await expect(categoryEditor).toHaveValue('health');
   await page.keyboard.press('Enter');
+  await expect(category(page, 'Renamed')).toHaveText('health');
   await expect(page.getByRole('button', { name: 'Edit “Renamed”', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Delete “Renamed”', exact: true })).toBeFocused();

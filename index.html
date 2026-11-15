@@ -31,17 +31,26 @@
               <label for="new-location">Location (optional)</label>
               <input id="new-location" class="new-location" name="location" placeholder="e.g. Home or office">
             </div>
+            <div class="new-category-field">
+              <label for="new-category">Category</label>
+              <select id="new-category" class="new-category" name="category">
+                <option value="work">work</option>
+                <option value="health">health</option>
+                <option value="home">home</option>
+              </select>
+            </div>
             <button class="add-todo" type="submit">Add todo</button>
           </form>
         </header>
         <section class="main" id="main" aria-label="Your todos" hidden>
           <div class="table-scroll" role="region" aria-label="Todo table, scroll horizontally to see all columns" tabindex="0">
             <table class="todo-table" aria-label="Todo list">
-              <caption class="sr-only">Your todos, with optional locations and editing controls.</caption>
+              <caption class="sr-only">Your todos, with locations, categories, and editing controls.</caption>
               <colgroup>
                 <col class="completion-column">
                 <col class="task-column">
                 <col class="location-column">
+                <col class="category-column">
                 <col class="actions-column">
               </colgroup>
               <thead>
@@ -49,6 +58,7 @@
                   <th scope="col">Completion</th>
                   <th scope="col">Task</th>
                   <th scope="col">Location</th>
+                  <th scope="col">Category</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
@@ -69,12 +79,12 @@
       </section>
       <p class="storage-notice" id="storage-notice" role="status" hidden></p>
       <footer class="info">
-        <p id="edit-help">Double-click a task or use Edit to change its task and location.</p>
+        <p id="edit-help">Double-click a task or use Edit to change its task, location, and category.</p>
         <p>One thing at a time.</p>
         <span class="built-with">VANILLA JAVASCRIPT · SAVED ON THIS DEVICE</span>
       </footer>
       <noscript><p class="storage-notice">Please enable JavaScript to use your todo list.</p></noscript>
-      <p class="sr-only" id="edit-instructions">Press Enter to save both fields or Escape to cancel. Moving between this row's fields and buttons keeps editing. Leaving the row saves. An empty task deletes the todo; an empty location clears its location.</p>
+      <p class="sr-only" id="edit-instructions">Press Enter to save all fields or Escape to cancel. Moving between this row's fields and buttons keeps editing. Leaving the row saves. An empty task deletes the todo; an empty location clears its location.</p>
     </main>
     <template id="todo-template">
       <tr class="todo">
@@ -88,6 +98,14 @@
         <td class="location-cell">
           <span class="todo-location"></span>
           <input class="edit-location" data-action="editor" data-field="location" aria-describedby="edit-instructions" hidden>
+        </td>
+        <td class="category-cell">
+          <span class="todo-category"></span>
+          <select class="edit-category" data-action="editor" data-field="category" aria-describedby="edit-instructions" hidden>
+            <option value="work">work</option>
+            <option value="health">health</option>
+            <option value="home">home</option>
+          </select>
         </td>
         <td class="actions-cell">
           <div class="row-actions">

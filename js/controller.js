@@ -1,4 +1,4 @@
-import { FILTERS, updateTodos } from './model.js';
+import { CATEGORIES, DEFAULT_CATEGORY, FILTERS, updateTodos } from './model.js';
 
 export function createController({
   initialTodos = [], initialError = '', filter = 'all',
@@ -22,9 +22,9 @@ export function createController({
   const controller = {
     snapshot,
     render: emit,
-    add(title, location = '') {
-      if (!title.trim()) return false;
-      mutate({ type: 'add', id: createId(), title, location });
+    add(title, location = '', category = DEFAULT_CATEGORY) {
+      if (!title.trim() || !CATEGORIES.includes(category)) return false;
+      mutate({ type: 'add', id: createId(), title, location, category });
       emit();
       return true;
     },
@@ -43,7 +43,7 @@ export function createController({
       if (editing) controller.finishEdit(editing.id);
       const todo = todos.find(todo => todo.id === id);
       if (!todo) return;
-      editing = { id, draft: todo.title, locationDraft: todo.location ?? '' };
+      editing = { id, draft: todo.title, locationDraft: todo.location ?? '', categoryDraft: todo.category ?? DEFAULT_CATEGORY };
       emit();
     },
     setDraft(id, draft) {
@@ -52,15 +52,18 @@ export function createController({
     setLocationDraft(id, locationDraft) {
       if (editing?.id === id) editing = { ...editing, locationDraft };
     },
+    setCategoryDraft(id, categoryDraft) {
+      if (editing?.id === id && CATEGORIES.includes(categoryDraft)) editing = { ...editing, categoryDraft };
+    },
     finishEditOnFocusOut(id, sourceAction, staysInRow) {
       if (staysInRow || !['editor', 'save', 'cancel'].includes(sourceAction)) return;
       controller.finishEdit(id);
     },
     finishEdit(id, cancel = false) {
       if (editing?.id !== id) return;
-      const { draft, locationDraft } = editing;
+      const { draft, locationDraft, categoryDraft } = editing;
       editing = null;
-      if (!cancel) mutate({ type: 'edit', id, title: draft, location: locationDraft });
+      if (!cancel) mutate({ type: 'edit', id, title: draft, location: locationDraft, category: categoryDraft });
       emit();
     },
   };

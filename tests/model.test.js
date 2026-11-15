@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterFromHash, remainingCount, updateTodos, visibleTodos } from '../js/model.js';
+import { CATEGORIES, DEFAULT_CATEGORY, filterFromHash, remainingCount, updateTodos, visibleTodos } from '../js/model.js';
 
 const fixture = () => [
   { id: 'a', title: 'Read', location: '', completed: false },
@@ -11,7 +11,7 @@ const fixture = () => [
 test('adding trims titles, appends active items, and leaves the input array untouched', () => {
   const todos = fixture();
   const result = updateTodos(todos, { type: 'add', id: 'd', title: '  Make tea \n' });
-  assert.deepEqual(result.at(-1), { id: 'd', title: 'Make tea', location: '', completed: false });
+  assert.deepEqual(result.at(-1), { id: 'd', title: 'Make tea', location: '', category: 'work', completed: false });
   assert.deepEqual(result.slice(0, 3), todos);
   assert.equal(todos.length, 3);
 });
@@ -124,4 +124,49 @@ test('HTML-like location strings remain literal data', () => {
   const todos = updateTodos([], { type: 'add', id: 'a', title: 'Read', location });
   assert.equal(todos[0].location, location);
   assert.equal(updateTodos(todos, { type: 'edit', id: 'a', title: 'Read', location: '<script>x</script>' })[0].location, '<script>x</script>');
+});
+
+test('categories are exactly work, health, home and legacy add callers default to work', () => {
+  assert.deepEqual(CATEGORIES, ['work', 'health', 'home']);
+  assert.equal(DEFAULT_CATEGORY, 'work');
+  assert.equal(updateTodos([], { type: 'add', id: 'old-caller', title: 'Read' })[0].category, 'work');
+  for (const category of CATEGORIES) {
+    assert.equal(updateTodos([], { type: 'add', id: category, title: 'Task', category })[0].category, category);
+  }
+});
+
+test('category-only edits preserve title, location, ID, completion, order and original data', () => {
+  const todos = fixture().map(todo => ({ ...todo, category: 'work' }));
+  const result = updateTodos(todos, { type: 'edit', id: 'b', title: 'Walk', category: 'health' });
+  assert.deepEqual(result[1], { ...todos[1], category: 'health' });
+  assert.equal(todos[1].category, 'work');
+  assert.equal(result[0], todos[0]);
+  assert.deepEqual(result.map(todo => todo.id), ['a', 'b', 'c']);
+  assert.equal(updateTodos(result, { type: 'edit', id: 'b', title: 'Walk', category: 'health' }), result);
+});
+
+test('old title/location edit callers preserve category and legacy work edits are no-ops', () => {
+  const todos = [{ id: 'a', title: 'Read', location: 'Library', category: 'home', completed: true }];
+  const result = updateTodos(todos, { type: 'edit', id: 'a', title: 'Read more', location: 'Park' });
+  assert.equal(result[0].category, 'home');
+  const legacy = fixture();
+  assert.equal(updateTodos(legacy, { type: 'edit', id: 'a', title: 'Read', category: 'work' }), legacy);
+});
+
+test('invalid supplied categories cannot add, partly edit, or delete existing todos', () => {
+  const todos = fixture();
+  for (const category of [null, '', 'other', 'Work', ' work ', 42, {}, [], false, '<svg onload=alert(1)>']) {
+    assert.equal(updateTodos(todos, { type: 'add', id: 'new', title: 'Task', category }), todos);
+    assert.equal(updateTodos(todos, { type: 'edit', id: 'a', title: 'Changed', location: 'Changed', category }), todos);
+    assert.equal(updateTodos(todos, { type: 'edit', id: 'a', title: '', category }), todos);
+  }
+});
+
+test('completion, filtering, bulk actions and deletion retain surviving categories', () => {
+  const todos = fixture().map((todo, index) => ({ ...todo, category: CATEGORIES[index] }));
+  const toggled = updateTodos(todos, { type: 'toggle-all' });
+  assert.deepEqual(toggled.map(todo => todo.category), CATEGORIES);
+  assert.deepEqual(visibleTodos(updateTodos(toggled, { type: 'toggle', id: 'b' }), 'active').map(todo => todo.category), ['health']);
+  assert.deepEqual(updateTodos(todos, { type: 'clear-completed' }).map(todo => todo.category), ['work', 'home']);
+  assert.deepEqual(updateTodos(todos, { type: 'delete', id: 'a' }).map(todo => todo.category), ['health', 'home']);
 });
