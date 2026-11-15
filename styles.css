@@ -13,9 +13,9 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; min-width: 280px; }
-button, input, a { -webkit-tap-highlight-color: transparent; }
-button, input { font: inherit; }
-button, a, input[type="checkbox"] { touch-action: manipulation; }
+button, input, select, a { -webkit-tap-highlight-color: transparent; }
+button, input, select { font: inherit; }
+button, select, a, input[type="checkbox"] { touch-action: manipulation; }
 button { color: inherit; cursor: pointer; }
 button, a { border-radius: 3px; }
 svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -30,14 +30,14 @@ h1 { margin: 0; color: var(--accent); font-size: clamp(76px, 15vw, 100px); font-
     0 10px 0 -2px #fff, 0 11px 0 -2px #dedede, 0 18px 42px #0000000b;
 }
 .entry { position: relative; }
-#new-todo-form { display: grid; grid-template-columns: minmax(0, 1fr) 200px auto; align-items: center; gap: 12px; }
+#new-todo-form { display: grid; grid-template-columns: minmax(0, 1fr) 180px 120px auto; align-items: center; gap: 12px; }
 .new-todo { width: 100%; height: 70px; border: 0; padding: 16px 20px 16px 60px; background: #fff; color: #333; font-size: 24px; font-weight: 300; border-radius: 0; box-shadow: inset 0 -1px 0 #00000008; }
-.new-todo, .new-location { min-width: 0; }
+.new-todo, .new-location, .new-category { min-width: 0; }
 .new-todo::placeholder { color: #757575; font-style: italic; opacity: 1; }
 .new-todo:focus { outline: none; box-shadow: inset 0 -2px var(--accent); }
-.new-location-field { min-width: 0; padding: 8px 0; }
-.new-location-field label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; }
-.new-location { width: 100%; height: 32px; border: 1px solid #b6b6b6; border-radius: 3px; padding: 5px 8px; color: #454545; font-size: 15px; background: #fff; }
+.new-location-field, .new-category-field { min-width: 0; padding: 8px 0; }
+.new-location-field label, .new-category-field label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+.new-location, .new-category { width: 100%; height: 32px; border: 1px solid #b6b6b6; border-radius: 3px; padding: 5px 8px; color: #454545; font-size: 15px; background: #fff; }
 .new-location::placeholder { color: #757575; opacity: 1; }
 .add-todo { min-height: 40px; margin-right: 16px; border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .add-todo:hover { background: #8d3036; }
@@ -48,9 +48,10 @@ h1 { margin: 0; color: var(--accent); font-size: clamp(76px, 15vw, 100px); font-
 .toggle-all:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
 .table-scroll { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .table-scroll:focus-visible { outline-offset: -3px; }
-.todo-table { width: 100%; min-width: 640px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.todo-table { width: 100%; min-width: 800px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
 .completion-column { width: 104px; }
 .location-column { width: 220px; }
+.category-column { width: 140px; }
 .actions-column { width: 104px; }
 .todo-table th { padding: 13px 14px; border-top: 1px solid var(--line); text-align: left; background: #fafafa; font-size: 11px; font-weight: 500; color: #666; letter-spacing: .6px; }
 .todo-table th:first-child { text-align: center; letter-spacing: 0; }
@@ -65,6 +66,7 @@ h1 { margin: 0; color: var(--accent); font-size: clamp(76px, 15vw, 100px); font-
 .todo-title { display: block; color: #454545; font-size: 21px; font-weight: 300; line-height: 1.45; overflow-wrap: anywhere; }
 .todo-location { display: block; color: #555; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 .todo-location.empty-location { color: var(--muted); }
+.todo-category { display: block; font-size: 16px; }
 .completed .todo-title { color: #767676; text-decoration: line-through; text-decoration-thickness: 1px; }
 .row-actions { display: flex; justify-content: center; gap: 4px; opacity: 0; }
 .todo:hover .row-actions, .todo:focus-within .row-actions { opacity: 1; }
@@ -73,9 +75,9 @@ h1 { margin: 0; color: var(--accent); font-size: clamp(76px, 15vw, 100px); font-
 .row-actions .destroy { color: var(--accent); }
 .row-actions svg { width: 19px; height: 19px; }
 .editing { background: #fffafa; }
-.edit-input, .edit-location { display: block; width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--accent); border-radius: 3px; color: #454545; background: #fff; font-size: 18px; line-height: 1.4; }
-.edit-location { font-size: 16px; }
-.edit-input:focus, .edit-location:focus { outline: 1px solid var(--accent); outline-offset: 1px; }
+.edit-input, .edit-location, .edit-category { display: block; width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--accent); border-radius: 3px; color: #454545; background: #fff; font-size: 18px; line-height: 1.4; }
+.edit-location, .edit-category { font-size: 16px; }
+.edit-input:focus, .edit-location:focus, .edit-category:focus { outline: 1px solid var(--accent); outline-offset: 1px; }
 .toggle:disabled { cursor: default; opacity: .6; }
 .filter-empty { margin: 0; padding: 28px 20px; text-align: center; font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); }
 .footer { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; min-height: 52px; padding: 12px 15px; border-top: 1px solid var(--line); background: #fff; font-size: 12px; }
@@ -107,10 +109,11 @@ h1 { margin: 0; color: var(--accent); font-size: clamp(76px, 15vw, 100px); font-
   .info { margin-top: 32px; }
 }
 @media (max-width: 700px) {
-  #new-todo-form { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; }
+  #new-todo-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px; }
   .new-todo { grid-column: 1 / -1; }
-  .new-location-field { padding: 0 0 14px 16px; }
-  .add-todo { align-self: end; margin-bottom: 14px; }
+  .new-location-field { padding: 0 0 0 16px; }
+  .new-category-field { padding: 0 16px 0 0; }
+  .add-todo { grid-column: 1 / -1; justify-self: end; margin-bottom: 14px; }
   .location-column { width: 200px; }
 }
 @media (pointer: coarse) { .row-actions { opacity: 1; } }

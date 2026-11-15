@@ -28,7 +28,7 @@ test('adding blank text is a no-op and valid additions save once', () => {
   assert.equal(saves.length, 0);
   assert.equal(renders.length, 0);
   assert.equal(controller.add('  Tea  '), true);
-  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', location: '', completed: false });
+  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', location: '', category: 'work', completed: false });
   assert.equal(saves.length, 1);
 });
 
@@ -78,7 +78,7 @@ test('starting another edit commits the previous draft and selects the new origi
   controller.setDraft('a', 'New title');
   controller.startEdit('b');
   assert.equal(controller.snapshot().todos[0].title, 'New title');
-  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: 'Walk', locationDraft: '' });
+  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: 'Walk', locationDraft: '', categoryDraft: 'work' });
   controller.startEdit('b');
   controller.setDraft('missing', 'ignored');
   assert.equal(controller.snapshot().editing.draft, 'Walk');
@@ -160,7 +160,7 @@ test('optional creation locations are trimmed and a location alone cannot create
   assert.equal(controller.add(' ', 'Office'), false);
   assert.equal(saves.length, 0);
   controller.add(' Tea ', ' Kitchen ');
-  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', location: 'Kitchen', completed: false });
+  assert.deepEqual(controller.snapshot().todos.at(-1), { id: 'new-1', title: 'Tea', location: 'Kitchen', category: 'work', completed: false });
 });
 
 test('title and location drafts are independent and commit atomically only once', () => {
@@ -168,11 +168,11 @@ test('title and location drafts are independent and commit atomically only once'
   controller.startEdit('b');
   controller.setDraft('b', ' Longer walk ');
   controller.setLocationDraft('b', ' Park ');
-  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: ' Longer walk ', locationDraft: ' Park ' });
+  assert.deepEqual(controller.snapshot().editing, { id: 'b', draft: ' Longer walk ', locationDraft: ' Park ', categoryDraft: 'work' });
   assert.equal(saves.length, 0);
   controller.finishEdit('b');
   controller.finishEdit('b');
-  assert.deepEqual(controller.snapshot().todos[1], { id: 'b', title: 'Longer walk', location: 'Park', completed: true });
+  assert.deepEqual(controller.snapshot().todos[1], { id: 'b', title: 'Longer walk', location: 'Park', category: 'work', completed: true });
   assert.equal(saves.length, 1);
 });
 
@@ -208,7 +208,7 @@ test('legacy todos without locations start with an empty location draft', () => 
   assert.equal(controller.snapshot().editing.locationDraft, '');
   controller.setLocationDraft('old', 'Home');
   controller.finishEdit('old');
-  assert.deepEqual(controller.snapshot().todos[0], { id: 'old', title: 'Existing task', location: 'Home', completed: true });
+  assert.deepEqual(controller.snapshot().todos[0], { id: 'old', title: 'Existing task', location: 'Home', category: 'work', completed: true });
 });
 
 test('hiding a focused Edit button during startEdit cannot reentrantly end editing', () => {
@@ -226,7 +226,7 @@ test('hiding a focused Edit button during startEdit cannot reentrantly end editi
   controller.setDraft('a', 'Changed task');
   controller.setLocationDraft('a', 'Library');
   controller.finishEdit('a');
-  assert.deepEqual(controller.snapshot().todos[0], { id: 'a', title: 'Changed task', location: 'Library', completed: false });
+  assert.deepEqual(controller.snapshot().todos[0], { id: 'a', title: 'Changed task', location: 'Library', category: 'work', completed: false });
 });
 
 test('focus transitions within the edited row keep both drafts; leaving a real edit control commits', () => {
@@ -247,4 +247,59 @@ test('focus transitions within the edited row keep both drafts; leaving a real e
   assert.equal(controller.snapshot().editing, null);
   assert.equal(controller.snapshot().todos[0].location, 'Library');
   assert.equal(saves.length, 1);
+});
+
+test('creation accepts all three categories, defaults old callers, and rejects supplied invalid values', () => {
+  const { controller, saves } = setup({ initialTodos: [] });
+  for (const category of ['work', 'health', 'home']) assert.equal(controller.add(category, 'Place', category), true);
+  assert.equal(controller.add('Legacy caller'), true);
+  for (const category of [null, 'other', 'Work', '', 1, {}, []]) assert.equal(controller.add('Invalid', '', category), false);
+  assert.deepEqual(controller.snapshot().todos.map(todo => todo.category), ['work', 'health', 'home', 'work']);
+  assert.equal(saves.length, 4);
+});
+
+test('select drafts share a single edit transaction and internal focus transitions never save', () => {
+  const { controller, saves } = setup();
+  controller.startEdit('b');
+  assert.equal(controller.snapshot().editing.categoryDraft, 'work');
+  controller.setDraft('b', ' Longer walk ');
+  controller.setLocationDraft('b', ' Park ');
+  controller.setCategoryDraft('b', 'health');
+  controller.setCategoryDraft('a', 'home');
+  controller.setCategoryDraft('b', '<img src=x>');
+  controller.finishEditOnFocusOut('b', 'editor', true);
+  assert.deepEqual(controller.snapshot().editing, {
+    id: 'b', draft: ' Longer walk ', locationDraft: ' Park ', categoryDraft: 'health',
+  });
+  assert.equal(saves.length, 0);
+  controller.finishEditOnFocusOut('b', 'editor', false);
+  controller.finishEdit('b');
+  assert.deepEqual(controller.snapshot().todos[1], { id: 'b', title: 'Longer walk', location: 'Park', category: 'health', completed: true });
+  assert.equal(saves.length, 1);
+});
+
+test('cancel restores title, location and category and stale select events do not mutate state', () => {
+  const original = { id: 'a', title: 'Read', location: 'Home', category: 'home', completed: false };
+  const { controller, saves } = setup({ initialTodos: [original] });
+  controller.startEdit('a');
+  controller.setDraft('a', '');
+  controller.setLocationDraft('a', 'Discard');
+  controller.setCategoryDraft('a', 'health');
+  controller.finishEdit('a', true);
+  controller.setCategoryDraft('a', 'work');
+  controller.finishEdit('a');
+  assert.deepEqual(controller.snapshot().todos, [original]);
+  assert.equal(saves.length, 0);
+});
+
+test('routing and starting another edit commit the pending category without losing other fields', () => {
+  const { controller } = setup();
+  controller.startEdit('a');
+  controller.setCategoryDraft('a', 'home');
+  controller.startEdit('b');
+  assert.equal(controller.snapshot().todos[0].category, 'home');
+  controller.setCategoryDraft('b', 'health');
+  controller.setFilter('completed');
+  assert.equal(controller.snapshot().todos[1].category, 'health');
+  assert.equal(controller.snapshot().editing, null);
 });

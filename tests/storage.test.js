@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { createStorage, STORAGE_INVALID, STORAGE_KEY, STORAGE_UNAVAILABLE } from '../js/storage.js';
 
 const todos = [
-  { id: 'a', title: 'Read', location: '', completed: false },
-  { id: 'b', title: '<img src=x onerror=alert(1)>', location: '<svg onload=alert(1)>', completed: true },
+  { id: 'a', title: 'Read', location: '', category: 'work', completed: false },
+  { id: 'b', title: '<img src=x onerror=alert(1)>', location: '<svg onload=alert(1)>', category: 'health', completed: true },
 ];
 function memoryStorage(raw) {
   const data = new Map([['unrelated', 'keep me']]);
@@ -49,6 +49,8 @@ for (const [name, raw] of [
   ['object location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: {} }] })],
   ['array location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: [] }] })],
   ['boolean location', JSON.stringify({ version: 1, todos: [{ ...todos[0], location: false }] })],
+  ...[null, '', 'other', 'Work', ' work ', 42, {}, [], false, '<svg onload=alert(1)>'].map(category =>
+    [`category ${JSON.stringify(category)}`, JSON.stringify({ version: 1, todos: [{ ...todos[0], category }] })]),
 ]) {
   test(`invalid storage recovers without overwriting the original: ${name}`, () => {
     const memory = memoryStorage(raw);
@@ -82,7 +84,7 @@ test('legacy version1 records load with blank locations without rewriting or los
   const memory = memoryStorage(raw);
   const storage = createStorage(() => memory);
   const loaded = storage.load();
-  assert.deepEqual(loaded, { todos: legacy.map(todo => ({ ...todo, location: '' })), error: '' });
+  assert.deepEqual(loaded, { todos: legacy.map(todo => ({ ...todo, location: '', category: 'work' })), error: '' });
   assert.equal(memory.data.get(STORAGE_KEY), raw);
   assert.equal(memory.data.get('unrelated'), 'keep me');
   assert.equal(storage.save(loaded.todos), '');
@@ -93,8 +95,8 @@ test('mixed legacy and located records preserve locations, order, IDs, and compl
   const mixed = [{ id: 'legacy', title: 'Old todo', completed: true }, { id: 'new', title: 'New todo', location: ' Office ', completed: false }];
   const storage = createStorage(() => memoryStorage(JSON.stringify({ version: 1, todos: mixed })));
   assert.deepEqual(storage.load(), { todos: [
-    { id: 'legacy', title: 'Old todo', location: '', completed: true },
-    { id: 'new', title: 'New todo', location: 'Office', completed: false },
+    { id: 'legacy', title: 'Old todo', location: '', category: 'work', completed: true },
+    { id: 'new', title: 'New todo', location: 'Office', category: 'work', completed: false },
   ], error: '' });
 });
 
@@ -102,5 +104,31 @@ test('saving legacy records writes explicit blank locations under the same key a
   const memory = memoryStorage();
   const storage = createStorage(() => memory);
   storage.save([{ id: 'legacy', title: 'Old todo', completed: false }]);
-  assert.deepEqual(JSON.parse(memory.data.get(STORAGE_KEY)), { version: 1, todos: [{ id: 'legacy', title: 'Old todo', location: '', completed: false }] });
+  assert.deepEqual(JSON.parse(memory.data.get(STORAGE_KEY)), { version: 1, todos: [{ id: 'legacy', title: 'Old todo', location: '', category: 'work', completed: false }] });
+});
+
+test('mixed legacy and categorized records default only missing category without rewriting on load', () => {
+  const mixed = [
+    { id: 'legacy', title: ' Old ', location: ' Office ', completed: true },
+    ...['work', 'health', 'home'].map(category => ({ id: category, title: category, location: 'Place', category, completed: false })),
+  ];
+  const raw = JSON.stringify({ version: 1, todos: mixed });
+  const memory = memoryStorage(raw);
+  const storage = createStorage(() => memory);
+  const loaded = storage.load();
+  assert.deepEqual(loaded.todos[0], { id: 'legacy', title: 'Old', location: 'Office', category: 'work', completed: true });
+  assert.deepEqual(loaded.todos.slice(1), mixed.slice(1));
+  assert.equal(memory.data.get(STORAGE_KEY), raw);
+  assert.equal(storage.save(loaded.todos), '');
+  assert.deepEqual(storage.load(), loaded);
+});
+
+test('saving invalid categories fails safely without replacing existing data', () => {
+  const original = JSON.stringify({ version: 1, todos });
+  const memory = memoryStorage(original);
+  const storage = createStorage(() => memory);
+  for (const category of [null, '', 'other', 'Work', ' work ', 42, {}, [], false, '<img src=x>']) {
+    assert.equal(storage.save([{ ...todos[0], category }]), STORAGE_INVALID);
+    assert.equal(memory.data.get(STORAGE_KEY), original);
+  }
 });

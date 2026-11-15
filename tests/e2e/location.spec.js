@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('semantic table has four columns; creation accepts optional trimmed locations', async ({ page }) => {
+test('semantic table has five columns; creation accepts optional trimmed locations', async ({ page }) => {
   await newLocation(page).fill('Office');
   await newTodo(page).fill('   ');
   await page.getByRole('button', { name: 'Add todo', exact: true }).click();
@@ -16,9 +16,9 @@ test('semantic table has four columns; creation accepts optional trimmed locatio
   await newLocation(page).fill('  Office  ');
   await page.getByRole('button', { name: 'Add todo', exact: true }).click();
   await expect(todoTable(page)).toBeVisible();
-  await expect(todoTable(page).getByRole('columnheader')).toHaveText(['Completion', 'Task', 'Location', 'Actions']);
+  await expect(todoTable(page).getByRole('columnheader')).toHaveText(['Completion', 'Task', 'Location', 'Category', 'Actions']);
   const row = todo(page, 'Write notes');
-  await expect(row.getByRole('cell')).toHaveCount(4);
+  await expect(row.getByRole('cell')).toHaveCount(5);
   await expect(row.getByRole('cell').nth(1)).toHaveText('Write notes');
   await expect(row.getByRole('cell').nth(2)).toHaveText('Office');
   await expect(newTodo(page)).toHaveValue('');

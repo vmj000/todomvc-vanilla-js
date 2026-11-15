@@ -1,4 +1,4 @@
-import { remainingCount, visibleTodos } from './model.js';
+import { DEFAULT_CATEGORY, remainingCount, visibleTodos } from './model.js';
 
 export function createView(document) {
   const list = document.querySelector('#todo-list');
@@ -64,6 +64,9 @@ export function createView(document) {
       location.classList.toggle('empty-location', !todo.location);
       if (todo.location) location.removeAttribute('aria-label');
       else location.setAttribute('aria-label', 'No location');
+      const category = row.querySelector('.todo-category');
+      category.textContent = todo.category ?? DEFAULT_CATEGORY;
+      category.hidden = isEditing;
       const toggle = row.querySelector('.toggle');
       toggle.checked = todo.completed;
       toggle.disabled = isEditing;
@@ -82,6 +85,10 @@ export function createView(document) {
       locationEditor.hidden = !isEditing;
       locationEditor.setAttribute('aria-label', `Edit location: ${todo.title}`);
       if (isEditing && locationEditor.value !== editing.locationDraft) locationEditor.value = editing.locationDraft;
+      const categoryEditor = row.querySelector('.edit-category');
+      categoryEditor.hidden = !isEditing;
+      categoryEditor.setAttribute('aria-label', `Edit category: ${todo.title}`);
+      if (isEditing && categoryEditor.value !== editing.categoryDraft) categoryEditor.value = editing.categoryDraft;
       if (row !== cursor) list.insertBefore(row, cursor);
       cursor = row.nextElementSibling;
     }

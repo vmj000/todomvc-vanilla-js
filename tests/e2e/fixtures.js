@@ -25,6 +25,7 @@ export const test = base.extend({
 export { expect };
 export const newTodo = page => page.getByRole('textbox', { name: 'What needs to be done?', exact: true });
 export const newLocation = page => page.getByRole('textbox', { name: 'Location (optional)', exact: true });
+export const newCategory = page => page.getByRole('combobox', { name: 'Category', exact: true });
 export const todoTable = page => page.getByRole('table', { name: 'Todo list', exact: true });
 export const todoRows = page => todoTable(page).getByRole('row').filter({
   has: page.locator('.todo-title'),
@@ -34,14 +35,16 @@ export const todo = (page, title) => todoRows(page).filter({
   has: page.locator('.todo-title').and(page.getByText(title, { exact: true })),
 });
 export const location = (page, title) => todo(page, title).locator('.todo-location');
+export const category = (page, title) => todo(page, title).locator('.todo-category');
 export const count = page => page.getByRole('status').filter({ hasText: /^\d+ items? left$/ });
 export const notice = page => page.getByRole('status').filter({ hasText: /could not|may not survive/ });
 
 export async function addTodos(page, ...values) {
   for (const value of values) {
-    const { title, location = '' } = typeof value === 'string' ? { title: value } : value;
+    const { title, location = '', category = 'work' } = typeof value === 'string' ? { title: value } : value;
     await newTodo(page).fill(title);
     await newLocation(page).fill(location);
+    await newCategory(page).selectOption(category);
     await newTodo(page).press('Enter');
   }
 }

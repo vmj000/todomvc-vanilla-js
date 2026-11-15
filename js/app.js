@@ -1,5 +1,5 @@
 import { createController } from './controller.js';
-import { filterFromHash } from './model.js';
+import { DEFAULT_CATEGORY, filterFromHash } from './model.js';
 import { createStorage } from './storage.js';
 import { createView } from './view.js';
 
@@ -15,13 +15,15 @@ const controller = createController({
 });
 const newTodo = document.querySelector('#new-todo');
 const newLocation = document.querySelector('#new-location');
+const newCategory = document.querySelector('#new-category');
 const list = document.querySelector('#todo-list');
 
 document.querySelector('#new-todo-form').addEventListener('submit', event => {
   event.preventDefault();
-  if (controller.add(newTodo.value, newLocation.value)) {
+  if (controller.add(newTodo.value, newLocation.value, newCategory.value)) {
     newTodo.value = '';
     newLocation.value = '';
+    newCategory.value = DEFAULT_CATEGORY;
   }
   newTodo.focus();
 });
@@ -37,6 +39,8 @@ window.addEventListener('hashchange', () => controller.setFilter(filterFromHash(
 list.addEventListener('change', event => {
   if (event.target.dataset.action === 'toggle') {
     controller.dispatch({ type: 'toggle', id: event.target.closest('.todo').dataset.id });
+  } else if (event.target.dataset.field === 'category') {
+    controller.setCategoryDraft(event.target.closest('.todo').dataset.id, event.target.value);
   }
 });
 list.addEventListener('pointerdown', event => {
@@ -59,7 +63,8 @@ list.addEventListener('dblclick', event => {
 list.addEventListener('input', event => {
   if (event.target.dataset.action === 'editor') {
     const id = event.target.closest('.todo').dataset.id;
-    if (event.target.dataset.field === 'location') controller.setLocationDraft(id, event.target.value);
+    if (event.target.dataset.field === 'category') controller.setCategoryDraft(id, event.target.value);
+    else if (event.target.dataset.field === 'location') controller.setLocationDraft(id, event.target.value);
     else controller.setDraft(id, event.target.value);
   }
 });
