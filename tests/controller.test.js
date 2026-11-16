@@ -212,14 +212,13 @@ test('legacy todos without locations start with an empty location draft', () => 
 });
 
 test('hiding a focused Edit button during startEdit cannot reentrantly end editing', () => {
-  let controller;
   let renders = 0;
-  ({ controller } = setup({
+  const { controller } = setup({
     render: state => {
       renders++;
       if (state.editing) controller.finishEditOnFocusOut(state.editing.id, 'edit', false);
     },
-  }));
+  });
   controller.startEdit('a');
   assert.equal(renders, 1);
   assert.equal(controller.snapshot().editing.id, 'a');
