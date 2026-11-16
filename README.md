@@ -81,6 +81,29 @@ For a browser smoke test, start the server and:
 6. Use only Tab, Shift+Tab, Enter, Space, and Escape. Check focus after deletion and editing.
 7. Check desktop and 320px-wide layouts, including long tasks/locations, for cell wrapping and contained table scrolling without page overflow.
 
+## Generated API documentation
+
+```sh
+npm ci
+npm run docs
+```
+
+Open `docs/api/index.html` in a browser. The generated reference includes all
+application modules, API signatures, data types, source links, and an
+[architecture and usage guide](docs/api-guide.md). No global tools or credentials
+are required. JSDoc is development-only; the app still runs without packages.
+
+Update the JSDoc comments in `js/` when changing an API. Run `npm run test:docs`
+to regenerate the site and verify its module pages and local links. Generated
+HTML is ignored by Git, and the existing app server serves only app assets,
+not the documentation. Open the generated HTML directly instead.
+
+The [API documentation workflow](.github/workflows/docs.yml) generates and checks
+the reference on pull requests and pushes to `main`, or manually. Download the
+`api-documentation` artifact from a successful Actions run, extract it, and open
+`index.html`. Artifacts are retained for 14 days. This read-only workflow neither
+commits generated files nor changes the app's GitHub Pages deployment.
+
 ## Structure
 
 - `js/model.js`: pure immutable todo operations and selectors.

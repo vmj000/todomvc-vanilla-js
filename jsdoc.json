@@ -1,0 +1,18 @@
+{
+  "source": {
+    "include": ["js"],
+    "includePattern": "\\.js$"
+  },
+  "opts": {
+    "destination": "docs/api",
+    "readme": "docs/api-guide.md",
+    "encoding": "utf8",
+    "recurse": true
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "default": {
+      "outputSourceFiles": true
+    }
+  }
+}
