@@ -30,6 +30,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Discover unit tests
+        run: npm run test:list
       - name: Run logic tests
         run: npm test
       - name: Check JavaScript syntax

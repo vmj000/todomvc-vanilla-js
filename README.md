@@ -34,11 +34,20 @@ The optional `location` field is additive within the existing version1 payload a
 ## Validate
 
 ```sh
+npm ci
 npm test
 npm run check
 ```
 
-Tests use Node's built-in runner and cover state transitions, routes, editing lifecycle, filtered bulk actions, storage validation/failure, and literal title preservation.
+Unit tests run in Node.js using the existing Playwright test runner and cover state transitions, routes, editing lifecycle, filtered bulk actions, storage validation/failure, and literal title preservation. The separate `playwright.unit.config.js` selects only `tests/*.test.js`; it does not launch browsers, start a server, or collect the E2E suite. No browser installation is needed for unit tests.
+
+To discover unit tests without executing their test bodies:
+
+```sh
+npm run test:list
+```
+
+This uses the runner's native `--list` mode, not the unsupported Node.js `--list-tests` flag. `npm test -- --list` is equivalent. To list only one file, use `npm run test:list -- tests/model.test.js`. To execute only that file, use `npm test -- tests/model.test.js`. `npm test` runs all unit tests once and exits with a nonzero status on failure.
 
 ### Reproducible browser tests
 

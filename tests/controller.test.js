@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { createController } from '../js/controller.js';
 import { visibleTodos } from '../js/model.js';
