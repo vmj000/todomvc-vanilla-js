@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { createStorage, STORAGE_INVALID, STORAGE_KEY, STORAGE_UNAVAILABLE } from '../js/storage.js';
 

@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { filterFromHash, remainingCount, updateTodos, visibleTodos } from '../js/model.js';
 
