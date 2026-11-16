@@ -1,13 +1,13 @@
 # Vanilla TodoMVC
 
-A tabular TodoMVC in plain HTML, CSS, and JavaScript, with optional task locations. No framework, build step, backend, or runtime dependencies. Playwright is a development-only dependency.
+A tabular TodoMVC in plain HTML, CSS, and JavaScript, with optional task locations. No framework, build step, backend, or runtime dependencies. Playwright and ESLint are development-only tools.
 
 Live app: **https://vmj000.github.io/todomvc-vanilla-js/**. See [deployment instructions](docs/deployment.md) for GitHub Pages setup and verification.
 The live app tracks `main`; feature-branch changes are not deployed before merge.
 
 ## Run
 
-Use Node.js 22 or newer. Running the app does not require installing packages.
+Use Node.js 22.13+ (22.x) or 24+. Running the app does not require installing packages.
 
 ```sh
 npm start
@@ -34,11 +34,14 @@ The optional `location` field is additive within the existing version1 payload a
 ## Validate
 
 ```sh
+npm ci
 npm test
 npm run check
 ```
 
 Tests use Node's built-in runner and cover state transitions, routes, editing lifecycle, filtered bulk actions, storage validation/failure, and literal title preservation.
+
+`npm run check` runs `npm run lint`: ESLint checks all JavaScript, including application modules, scripts, tests, and configuration files. The flat configuration in `eslint.config.js` uses ESLint's recommended correctness rules plus strict equality, no `var`, and `prefer-const`. It catches undefined names, unused variables, and other likely bugs, with separate browser and Node.js globals. Generated reports, coverage, and dependencies are ignored. Warnings fail the check, and CI runs the same command.
 
 ### Reproducible browser tests
 
@@ -67,7 +70,7 @@ npx playwright show-report
 
 Failures retain an HTML report in `playwright-report/` and traces, screenshots, and videos in `test-results/`. To inspect a trace, run `npx playwright show-trace <path-to-trace.zip>`. Generated reports are ignored by Git.
 
-The [E2E workflow](.github/workflows/e2e.yml) runs on pushes and pull requests to `main`, or manually. It uses Node.js 24, `npm ci`, the logic tests and syntax checks, and all three browser engines on Ubuntu. Failed runs upload reports and browser artifacts for 14 days. It needs only read access to repository contents and does not deploy the app.
+The [E2E workflow](.github/workflows/e2e.yml) runs on pushes and pull requests to `main`, or manually. It uses Node.js 24, `npm ci`, the logic tests and ESLint checks, and all three browser engines on Ubuntu. Failed runs upload reports and browser artifacts for 14 days. It needs only read access to repository contents and does not deploy the app.
 
 If Factory's `agent-browser` CLI and its Chromium browser are available, run `npm run test:browser` for DOM, routing/history, persistence, storage-failure, literal rendering, focus management, and 1280px/320px layout regression checks. It starts and stops its own server on a temporary loopback port and uses the embedded browser when configured; otherwise it opens and closes a named headless session. Responsive checks use same-origin iframe viewports because Factory controls the embedded pane's size. The embedded browser tab is left open, but the temporary server is stopped. The suite uses DOM events, including synthetic Enter/Escape, rather than claiming native OS keyboard coverage. No application dependencies are installed.
 
