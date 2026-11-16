@@ -1,5 +1,16 @@
+/**
+ * Keyed table rendering, accessible labels, and focus recovery.
+ * @module view
+ */
 import { remainingCount, visibleTodos } from './model.js';
 
+/**
+ * Create a view for the application's index.html DOM. Reuses rows by todo ID,
+ * writes task/location strings as textContent, and manages focus after edits
+ * and removals. Does not mutate controller state.
+ * @param {Document} document Document containing the app's controls and row template.
+ * @returns {{render: function(module:controller~State): void}} Renderer consuming controller snapshots.
+ */
 export function createView(document) {
   const list = document.querySelector('#todo-list');
   const template = document.querySelector('#todo-template');

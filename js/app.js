@@ -1,3 +1,9 @@
+/**
+ * Browser entry point. Loads persisted todos, creates the controller and view,
+ * wires delegated table/form/hash events, and renders once.
+ * Import only in a browser with the application's index.html DOM available.
+ * @module app
+ */
 import { createController } from './controller.js';
 import { filterFromHash } from './model.js';
 import { createStorage } from './storage.js';
